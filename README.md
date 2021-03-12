@@ -6,8 +6,8 @@ To get started install [anaconda3](https://www.anaconda.com) and execute
 conda env create -f environment.yml
 ```
 
-This will create a conda environment `ml_project` with the required dependencies installed. You can actiavte this environment using
+This will create a conda environment `ml_project` with the required dependencies installed. You can activate this environment using
 
 ```python
-conda actiavte ml_project
+conda activate ml_project
 ```
