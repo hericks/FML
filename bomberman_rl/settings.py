@@ -39,6 +39,9 @@ INPUT_MAP = {
     pygame.K_SPACE: 'BOMB',
 }
 
+# Custom settings
+COIN_MULTIPLIER = 10
+
 # Logging levels
 LOG_GAME = logging.INFO
 LOG_AGENT_WRAPPER = logging.DEBUG
