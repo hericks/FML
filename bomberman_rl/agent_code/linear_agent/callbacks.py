@@ -4,13 +4,20 @@ import random
 
 import numpy as np
 
+import logging
+import sys
 
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+
+ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
 NUM_ACTIONS = len(ACTIONS)
-NUM_FEATURES = 2*29*29
+NUM_FEATURES = 2*9*9
 
-EPSILON = 1/3
+EPSILON_TRAIN = 0.3
+EPSILON_PLAY = 0.2
+
+STDOUT_LOGLEVEL = logging.INFO
+
 
 # weights: np.array (NUM_ACTIONS, NUM_FEATURES)
 
@@ -22,14 +29,23 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
-    if self.train or not os.path.isfile("my-saved-model.pt"):
+    if STDOUT_LOGLEVEL != None:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(STDOUT_LOGLEVEL)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        
+    if self.train or not os.path.isfile("weights.pt"):
         self.logger.info("Setting up model from scratch.")
-        self.weights = np.random.rand(NUM_ACTIONS, NUM_FEATURES)
+        self.weights = np.zeros((NUM_ACTIONS, NUM_FEATURES))
     else:
         self.logger.info("Loading model from saved state.")
-        with open("my-saved-model.pt", "rb") as file:
+        with open("weights.pt", "rb") as file:
             self.weights = pickle.load(file)
-
+            
+def evaluate_q(features, action, weights):
+    return np.dot(weights, features)[ACTIONS.index(action)]
 
 def act(self, game_state: dict) -> str:
     """
@@ -40,14 +56,14 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
-    
-    if self.train and random.random() < EPSILON:
-        self.logger.debug("Choosing action purely at random.") # 80%: walk in any direction. 10% wait. 10% bomb.
-        return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1])
+   
+    if (self.train and random.random() < EPSILON_TRAIN) or (not self.train and random.random() < EPSILON_PLAY):
+        self.logger.debug("Choosing action purely at random.")
+        return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1])
         
-    
     features = state_to_features(game_state)
     q_values = np.dot(self.weights, features)
+    self.logger.debug(f"Choosing action {ACTIONS[np.argmax(q_values)]}.")
     return ACTIONS[np.argmax(q_values)]
 
 
@@ -59,6 +75,7 @@ def state_to_features(game_state: dict) -> np.array:
     :param game_state:  A dictionary describing the current game board.
     :return: np.array (NUM_FEATURES,)
     """
+    
     # This is the dict before the game begins and after it ends
     if game_state is None:
         return None
@@ -81,6 +98,7 @@ def state_to_features(game_state: dict) -> np.array:
         x_rel, y_rel = x - self_x, y - self_y
         coin_map[14 + x_rel, 14 + y_rel] = 1
         
-    channels = [wall_map, coin_map]
+    channels = [wall_map[10:19,10:19], coin_map[10:19,10:19]]
 
     return np.stack(channels).reshape(-1)
+
