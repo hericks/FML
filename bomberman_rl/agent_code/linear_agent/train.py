@@ -13,7 +13,7 @@ Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
 # Hyper parameters
-LEARNING_RATE = 0.000125
+LEARNING_RATE = 0.0001
 DISCOUNT_FACTOR = 0.999
 
 

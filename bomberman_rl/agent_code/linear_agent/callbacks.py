@@ -46,6 +46,13 @@ def setup(self):
             
 def evaluate_q(features, action, weights):
     return np.dot(weights, features)[ACTIONS.index(action)]
+    
+    
+def epsilon_train(round):
+    if (round < 250):
+        return(0.5)
+    
+    return max(0.075, 0.5 - 0.5 * (round-250) / 250)
 
 def act(self, game_state: dict) -> str:
     """
@@ -57,7 +64,7 @@ def act(self, game_state: dict) -> str:
     :return: The action to take as a string.
     """
    
-    if (self.train and random.random() < EPSILON_TRAIN) or (not self.train and random.random() < EPSILON_PLAY):
+    if (self.train and random.random() < epsilon_train(game_state['round'])) or (not self.train and random.random() < EPSILON_PLAY):
         self.logger.debug("Choosing action purely at random.")
         return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1])
         
