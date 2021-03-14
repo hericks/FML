@@ -30,6 +30,9 @@ class Coin(Item):
 
     def get_state(self):
         return self.x, self.y
+        
+    def __eq__(self, other):
+        return self.x == other.x & self.y == other.y & self.collectable == other.collectable
 
 
 class Bomb(Item):
