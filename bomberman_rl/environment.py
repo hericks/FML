@@ -358,8 +358,8 @@ class BombeRLeWorld(GenericWorld):
                     while True:
                         x, y = np.random.randint(1 + 5 * i, 6 + 5 * i), np.random.randint(1 + 5 * j, 6 + 5 * j)
                         if n_crates == 0 and self.arena[x, y] == 0:
-                            self.coins.append(Coin((x, y)))
-                            self.coins[-1].collectable = True
+                            if (not Coin((x,y), collectable = True) in self.coins):
+                                self.coins.append(Coin((x, y), collectable = True))
                             break
                         elif self.arena[x, y] == 1:
                             self.coins.append(Coin((x, y)))
