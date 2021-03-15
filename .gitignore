@@ -1,7 +1,7 @@
 .Rproj.user
 ml_project.Rproj
-bomberman_rl/__pycache__/*
 *.pyc
 *.log
 .ipynb_checkpoints
 *.pt
+__pycache__
