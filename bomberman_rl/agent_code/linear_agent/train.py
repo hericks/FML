@@ -6,7 +6,7 @@ from collections import namedtuple, deque
 from typing import List
 
 import events as e
-from .callbacks import state_to_features, evaluate_q, ACTIONS, AGENT_NAME
+from .callbacks import state_to_features, evaluate_q, ACTIONS, AGENT_NAME, normalize_state
 
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -15,7 +15,7 @@ Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
 # Hyper parameters
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.001
 DISCOUNT_FACTOR = 0.999
 
 
@@ -26,11 +26,16 @@ def setup_training(self):
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
     self.lastTransition = None
-    self.numInvalidActions = 0
-    self.numInvalidActionsHistory = deque()
-    self.numCoinsCollected = 0
-    self.numCoinsCollectedHistory = deque()
+    
+    self.history = dict()
+    self.history['numCoinsCollected'] = deque()
+    self.history['numInvalidActions'] = deque()
+    self.history['roundLength'] = deque()
+    
     self.historyFilePath = datetime.now().strftime(f"histories/history_{AGENT_NAME}_%d_%m_%Y_%H_%M_%S_%f.pt")
+    
+    self.numInvalidActions = 0
+    self.numCoinsCollected = 0
     
     self.logger.info(f"Saving history to {self.historyFilePath}.")
 
@@ -96,8 +101,9 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # self.transitions.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
 
     # update history
-    self.numInvalidActionsHistory.append(self.numInvalidActions)
-    self.numCoinsCollectedHistory.append(self.numCoinsCollected)
+    self.history['numInvalidActions'].append(self.numInvalidActions)
+    self.history['numCoinsCollected'].append(self.numCoinsCollected)
+    self.history['roundLength'].append(last_game_state['step'])
     
     # logging 
     self.logger.info(f'{self.numInvalidActions} invalid moves were played during this game.')
@@ -110,7 +116,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
       
     # store model history
     with open(self.historyFilePath, "wb") as file:
-      pickle.dump((self.numInvalidActionsHistory, self.numCoinsCollectedHistory), file)
+      pickle.dump(self.history, file)
       
     # perform reset 
     self.lastTransition = None
