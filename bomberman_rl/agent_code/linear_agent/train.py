@@ -8,6 +8,7 @@ import events as e
 from .callbacks import state_to_features, evaluate_q, ACTIONS
 
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
@@ -104,7 +105,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
       pickle.dump(self.weights, file)
       
     # store model history
-    with open("history.pt", "wb") as file:
+    format_string = "histories/history_%d_%m_%Y_%H_%M_%S_%f.pt"
+    with open(datetime.now().strftime(format_string), "wb") as file:
       pickle.dump((self.numInvalidActionsHistory, self.numCoinsCollectedHistory), file)
       
     # perform reset 
