@@ -10,16 +10,20 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent"
+AGENT_NAME = "linear_agent_6_look_around"
 
 NUM_ACTIONS = len(ACTIONS)
-NUM_FEATURES = 2*31*31
 
-EPSILON_TRAIN = 0.3
+# 0 <= NUM_LOOK_AROUND <= 15
+NUM_LOOK_AROUND = 5
+NUM_FEATURES = 2*(2*NUM_LOOK_AROUND+1)*(2*NUM_LOOK_AROUND+1)
+
+EPSILON_TRAIN_VALUES = [0.5, 0.5, 0.1]
+EPSILON_TRAIN_BREAKS = [0, 150, 250]
+
 EPSILON_PLAY = 0.2
 
 STDOUT_LOGLEVEL = logging.INFO
-
 
 # weights: np.array (NUM_ACTIONS, NUM_FEATURES)
 
@@ -50,12 +54,6 @@ def evaluate_q(features, action, weights):
     return np.dot(weights, features)[ACTIONS.index(action)]
     
     
-def epsilon_train(round):
-    if (round < 250):
-        return(0.5)
-    
-    return max(0.075, 0.5 - 0.5 * (round-250) / 250)
-
 def act(self, game_state: dict) -> str:
     """
     Your agent should parse the input, think, and take a decision.
@@ -65,8 +63,10 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
-   
-    if (self.train and random.random() < epsilon_train(game_state['round'])) or (not self.train and random.random() < EPSILON_PLAY):
+  
+    epsilon_train = np.interp(game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES)
+    
+    if (self.train and random.random() < epsilon_train) or (not self.train and random.random() < EPSILON_PLAY):
         self.logger.debug("Choosing action purely at random.")
         return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1])
         
@@ -146,8 +146,10 @@ def state_to_features(game_state: dict) -> np.array:
     for x, y in coins:
         x_rel, y_rel = x - self_x, y - self_y
         coin_map[15 + x_rel, 15 + y_rel] = 1
-        
-    channels = [wall_map, coin_map]
+    
+    index_min = 15 - NUM_LOOK_AROUND
+    index_max = 16 + NUM_LOOK_AROUND
+    channels = [wall_map[index_min:index_max,index_min:index_max], coin_map[index_min:index_max,index_min:index_max]]
     
     return np.stack(channels).reshape(-1)
 
