@@ -1,3 +1,4 @@
+import os
 import pickle
 import random
 import numpy as np
@@ -5,7 +6,7 @@ from collections import namedtuple, deque
 from typing import List
 
 import events as e
-from .callbacks import state_to_features, evaluate_q, ACTIONS
+from .callbacks import state_to_features, evaluate_q, ACTIONS, AGENT_NAME
 
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -29,6 +30,9 @@ def setup_training(self):
     self.numInvalidActionsHistory = deque()
     self.numCoinsCollected = 0
     self.numCoinsCollectedHistory = deque()
+    self.historyFilePath = datetime.now().strftime(f"histories/history_{AGENT_NAME}_%d_%m_%Y_%H_%M_%S_%f.pt")
+    
+    self.logger.info(f"Saving history to {self.historyFilePath}.")
 
 def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_state: dict, events: List[str]):
     """
@@ -105,8 +109,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
       pickle.dump(self.weights, file)
       
     # store model history
-    format_string = "histories/history_%d_%m_%Y_%H_%M_%S_%f.pt"
-    with open(datetime.now().strftime(format_string), "wb") as file:
+    with open(self.historyFilePath, "wb") as file:
       pickle.dump((self.numInvalidActionsHistory, self.numCoinsCollectedHistory), file)
       
     # perform reset 
