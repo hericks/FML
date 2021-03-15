@@ -3,5 +3,3 @@ ml_project.Rproj
 bomberman_rl/__pycache__/*
 *.pyc
 *.log
-.ipynb*
-*.ipynb
