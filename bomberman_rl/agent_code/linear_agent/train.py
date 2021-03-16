@@ -7,6 +7,7 @@ from typing import List
 
 import events as e
 from .callbacks import state_to_features, evaluate_q, ACTIONS, AGENT_NAME, normalize_state
+from .callbacks import EPSILON_TRAIN_VALUES, EPSILON_TRAIN_BREAKS
 
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -15,8 +16,8 @@ Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
 # Hyper parameters
-LEARNING_RATE = 0.001
-DISCOUNT_FACTOR = 0.999
+LEARNING_RATE = 0.0001
+DISCOUNT_FACTOR = 0.995
 
 
 def setup_training(self):
@@ -31,6 +32,7 @@ def setup_training(self):
     self.history['numCoinsCollected'] = deque()
     self.history['numInvalidActions'] = deque()
     self.history['roundLength'] = deque()
+    self.history['epsilon'] = deque()
     
     self.historyFilePath = datetime.now().strftime(f"histories/history_{AGENT_NAME}_%d_%m_%Y_%H_%M_%S_%f.pt")
     
@@ -104,11 +106,15 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.history['numInvalidActions'].append(self.numInvalidActions)
     self.history['numCoinsCollected'].append(self.numCoinsCollected)
     self.history['roundLength'].append(last_game_state['step'])
+    self.history['epsilon'].append(np.interp(last_game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES))
     
     # logging 
     self.logger.info(f'{self.numInvalidActions} invalid moves were played during this game.')
     self.logger.info(f'{self.numCoinsCollected} coins were collected during this game.')
     self.logger.info(f'The game went for {last_game_state["step"]} steps.')
+    
+    normalize_state(last_game_state)
+    self.logger.info(np.dot(self.weights, state_to_features(last_game_state)))
     
     # store the model
     with open("weights.pt", "wb") as file:
@@ -128,13 +134,11 @@ def reward_from_events(self, events: List[str]) -> int:
     Modify rewards to en/discourage certain behavior.
     """
     game_rewards = {
-        e.COIN_COLLECTED: 1,
-        e.KILLED_OPPONENT: 5,
-        e.INVALID_ACTION: -1,
+        e.COIN_COLLECTED: 1
     }
     reward_sum = 0
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
     # self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
-    return reward_sum
+    return reward_sum - 0.01
