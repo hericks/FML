@@ -10,7 +10,7 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent_4_look_around_with_mirroring_unique_coin_identifiers"
+AGENT_NAME = "linear_agent_4_look_around_with_extensive_mirroring_unique_coin_identifiers"
 
 NUM_ACTIONS = len(ACTIONS)
 
@@ -99,6 +99,9 @@ def normalize_state(game_state):
         
     def flip_tuple_y(t):
         return (t[0], 16 - t[1])
+        
+    def transpose_tuple(t):
+        return (t[1], t[0])
    
     flipped_x = False
     if agent_x > 8:
@@ -121,12 +124,32 @@ def normalize_state(game_state):
         game_state['self'] = (name, score, canPlaceBomb, flip_tuple_y(pos))
         game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_y(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         flipped_y = True
+        
+    flipped_xy = False
+    if agent_y > agent_x:
+        game_state['field'] = np.transpose(game_state['field'])
+        game_state['bombs'] = [(transpose_tuple(pos), time) for pos, time in game_state['bombs']]
+        game_state['explosion_map'] = np.transpose(game_state['explosion_map'])
+        game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
+        name, score, canPlaceBomb, pos = game_state['self']
+        game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
+        game_state['others'] = [(name, score, canPlaceBomb, transpose_tuple(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
+        flipped_xy = True
 
     def action_map(a):
         if flipped_x:
             a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
         if flipped_y:
             a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
+        if flipped_xy:
+            if a == 'UP':
+                a = 'LEFT'
+            else if a == 'DOWN':
+                a = 'RIGHT'
+            else if a == 'RIGHT':
+                a = 'DOWN'
+            else if a == 'LEFT':
+                a = 'UP'
         return a
         
     return action_map
