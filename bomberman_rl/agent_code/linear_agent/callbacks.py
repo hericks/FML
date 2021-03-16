@@ -91,9 +91,7 @@ def act(self, game_state: dict) -> str:
 def normalize_state(game_state):
     if game_state == None:
         return lambda a: a
-    
-    agent_x, agent_y = game_state['self'][3]
-    
+        
     def flip_tuple_x(t):
         return (16 - t[0], t[1])
         
@@ -102,7 +100,9 @@ def normalize_state(game_state):
         
     def transpose_tuple(t):
         return (t[1], t[0])
-   
+    
+    agent_x, agent_y = game_state['self'][3]
+    
     flipped_x = False
     if agent_x > 8:
         game_state['field'] = np.flipud(game_state['field'])
@@ -125,7 +125,9 @@ def normalize_state(game_state):
         game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_y(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         flipped_y = True
         
-    flipped_xy = False
+    agent_x, agent_y = game_state['self'][3]
+    
+    transposed_board = False
     if agent_y > agent_x:
         game_state['field'] = np.transpose(game_state['field'])
         game_state['bombs'] = [(transpose_tuple(pos), time) for pos, time in game_state['bombs']]
@@ -134,26 +136,25 @@ def normalize_state(game_state):
         name, score, canPlaceBomb, pos = game_state['self']
         game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
         game_state['others'] = [(name, score, canPlaceBomb, transpose_tuple(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
-        flipped_xy = True
+        transposed_board = True
 
     def action_map(a):
+        if transposed_board:
+            if a == 'RIGHT':
+                a = 'DOWN'
+            elif a == 'DOWN':
+                a = 'RIGHT'
+            elif a == 'LEFT':
+                a = 'UP'
+            elif a == 'UP':
+                a = 'LEFT'
         if flipped_x:
             a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
         if flipped_y:
             a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
-        if flipped_xy:
-            if a == 'UP':
-                a = 'LEFT'
-            elif a == 'DOWN':
-                a = 'RIGHT'
-            elif a == 'RIGHT':
-                a = 'DOWN'
-            elif a == 'LEFT':
-                a = 'UP'
         return a
         
-    return action_map
-
+    return action_map 
 def state_to_features(game_state: dict, readable = False) -> np.array:
     """
     Converts the game state to the input of your model, i.e.
