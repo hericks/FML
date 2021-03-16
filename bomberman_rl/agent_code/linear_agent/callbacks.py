@@ -18,8 +18,8 @@ NUM_ACTIONS = len(ACTIONS)
 NUM_LOOK_AROUND = 4
 NUM_FEATURES = 2*(2*NUM_LOOK_AROUND+1)*(2*NUM_LOOK_AROUND+1) + 4
 
-EPSILON_TRAIN_VALUES = [0.5, 0.3, 0.1]
-EPSILON_TRAIN_BREAKS = [0, 50, 250]
+EPSILON_TRAIN_VALUES = [0.5, 0.2]
+EPSILON_TRAIN_BREAKS = [0, 150]
 
 EPSILON_PLAY = 0.2
 
@@ -67,27 +67,27 @@ def act(self, game_state: dict) -> str:
     epsilon_train = np.interp(game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES)
     
     if (self.train and random.random() < epsilon_train) or (not self.train and random.random() < EPSILON_PLAY):
-        self.logger.debug("Choosing action purely at random.")
-        return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1])
-        
-    action_map = normalize_state(game_state)
-    features = state_to_features(game_state)
-    q_values = np.dot(self.weights, features)
+        # self.logger.debug("Choosing action purely at random.")
+        return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1])  action_map = normalize_state(game_state) features = state_to_features(game_state) q_values = np.dot(self.weights, features)
     
-    if (not self.train):
-        wall_map, coin_map, coin_indicator = state_to_features(game_state, True)
-        self.logger.debug(f"Wall map: \n{wall_map}")
-        self.logger.debug(f"Coin map: \n{coin_map}")
-        self.logger.debug(f"Coin indicator: {coin_indicator}")
+    if not self.train:
+        feature_dict = state_to_features(game_state, True)
+        self.logger.debug(f"Wall map: \n{feature_dict['wall_map']}")
+        self.logger.debug(f"Coin map: \n{feature_dict['coin_map']}")
+        self.logger.debug(f"Coins in quartal desc: {feature_dict['coins_in_quartal_description']}")
+        self.logger.debug(f"Coins in quartal: {feature_dict['coins_in_quartal']}")
+        self.logger.debug(f"Coin indicator: {feature_dict['coin_indicator']}")
         self.logger.debug(f"Actions: {ACTIONS}")
         self.logger.debug(f"Q-Values: {q_values}")
-   
-    if not self.train:
-        self.logger.info(f"Choosing action {action_map(ACTIONS[np.argmax(q_values)])}.")
+        self.logger.debug(f"Choosing action {ACTIONS[np.argmax(q_values)]}.")
+        self.logger.debug(f"Real-Actions: {[action_map(a) for a in ACTIONS]}")
     
     return action_map(ACTIONS[np.argmax(q_values)])
     
 def normalize_state(game_state):
+    if game_state == None:
+        return lambda a: a
+    
     agent_x, agent_y = game_state['self'][3]
     
     def flip_tuple_x(t):
@@ -117,7 +117,7 @@ def normalize_state(game_state):
         game_state['self'] = (name, score, canPlaceBomb, flip_tuple_y(pos))
         game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_y(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         flipped_y = True
-        
+
     def action_map(a):
         if flipped_x:
             a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
@@ -141,7 +141,7 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
         return None
        
     self_x, self_y = game_state['self'][3]
-   
+    
     wall_map = np.zeros((31, 31)) 
     field = game_state['field'] 
     for x in np.arange(17):
@@ -150,13 +150,13 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
                 continue 
             
             x_rel, y_rel = x - self_x, y - self_y
-            wall_map[15 + x_rel, 15 + y_rel] = 1
+            wall_map[15 + y_rel, 15 + x_rel] = 1
             
     coin_map = np.zeros((31, 31)) 
     coins = game_state['coins']
     for x, y in coins:
         x_rel, y_rel = x - self_x, y - self_y
-        coin_map[15 + x_rel, 15 + y_rel] = 1
+        coin_map[15 + y_rel, 15 + x_rel] = 1
         
     coins_in_quartal = [np.sum(coin_map[0:16,0:16]), np.sum(coin_map[0:16,15:32]), np.sum(coin_map[15:32,0:16]), np.sum(coin_map[15:32,15:32])]
     
@@ -168,7 +168,13 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
     max_coin_quartal[np.argmax(coins_in_quartal)] = 1
     
     if readable:
-        return(channels[0], channels[1], max_coin_quartal)
+        return {
+            "wall_map": channels[0],
+            "coin_map": channels[1],
+            "coins_in_quartal_description": ['OL', 'OR', 'UL', 'UR'],
+            "coins_in_quartal": coins_in_quartal,
+            "coin_indicator": max_coin_quartal
+        }
     
     return np.append(np.stack(channels).reshape(-1), max_coin_quartal)
 
