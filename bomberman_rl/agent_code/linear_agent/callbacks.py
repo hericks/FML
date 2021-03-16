@@ -144,11 +144,11 @@ def normalize_state(game_state):
         if flipped_xy:
             if a == 'UP':
                 a = 'LEFT'
-            else if a == 'DOWN':
+            elif a == 'DOWN':
                 a = 'RIGHT'
-            else if a == 'RIGHT':
+            elif a == 'RIGHT':
                 a = 'DOWN'
-            else if a == 'LEFT':
+            elif a == 'LEFT':
                 a = 'UP'
         return a
         
