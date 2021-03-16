@@ -10,7 +10,7 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent_4_look_around_with_extensive_mirroring_unique_coin_identifiers"
+AGENT_NAME = "linear_agent_4_look_around_with_extensive_mirroring_unique_coin_identifiers_75"
 
 NUM_ACTIONS = len(ACTIONS)
 
