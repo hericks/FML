@@ -1,5 +1,7 @@
 .Rproj.user
-ml_project.Rproj
+*.Rproj
+*.Rhistory
+*.RData
 *.pyc
 *.log
 .ipynb_checkpoints
