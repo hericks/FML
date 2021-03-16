@@ -10,7 +10,7 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent_4_look_around_with_extensive_mirroring_unique_coin_identifiers_75"
+AGENT_NAME = "linear_agent_4_look_around_with_mirroring_unique_coin_identifiers_75"
 
 NUM_ACTIONS = len(ACTIONS)
 
@@ -137,12 +137,13 @@ def normalize_state(game_state):
         return (t[1], t[0])
     
     transposed_board = False
-    if agent_y_update > agent_x_update:
-        game_state['field'] = np.transpose(game_state['field'])
-        game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
-        name, score, canPlaceBomb, pos = game_state['self']
-        game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
-        transposed_board = True
+    # TODO: UPDATE OTHER DICT ENTRIES
+    # if agent_y_update > agent_x_update:
+    #     game_state['field'] = np.transpose(game_state['field'])
+    #     game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
+    #     name, score, canPlaceBomb, pos = game_state['self']
+    #     game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
+    #     transposed_board = True
 
     def action_map(a):
         if transposed_board:
