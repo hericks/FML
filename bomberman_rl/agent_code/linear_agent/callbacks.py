@@ -23,7 +23,7 @@ EPSILON_TRAIN_BREAKS = [0, 150]
 
 EPSILON_PLAY = 0.2
 
-STDOUT_LOGLEVEL = logging.INFO
+STDOUT_LOGLEVEL = logging.DEBUG
 
 # weights: np.array (NUM_ACTIONS, NUM_FEATURES)
 
@@ -76,33 +76,31 @@ def act(self, game_state: dict) -> str:
     
     if not self.train:
         feature_dict = state_to_features(game_state, True)
-        self.logger.debug(f"Wall map: \n{feature_dict['wall_map']}")
-        self.logger.debug(f"Coin map: \n{feature_dict['coin_map']}")
-        self.logger.debug(f"Coins in quartal desc: {feature_dict['coins_in_quartal_description']}")
-        self.logger.debug(f"Coins in quartal: {feature_dict['coins_in_quartal']}")
-        self.logger.debug(f"Coin indicator: {feature_dict['coin_indicator']}")
-        self.logger.debug(f"Actions: {ACTIONS}")
-        self.logger.debug(f"Q-Values: {q_values}")
-        self.logger.debug(f"Choosing action {ACTIONS[np.argmax(q_values)]}.")
-        self.logger.debug(f"Real-Actions: {[action_map(a) for a in ACTIONS]}")
+        # self.logger.debug(f"Wall map: \n{feature_dict['wall_map']}")
+        # self.logger.debug(f"Coin map: \n{feature_dict['coin_map']}")
+        # self.logger.debug(f"Coins in quartal desc: {feature_dict['coins_in_quartal_description']}")
+        # self.logger.debug(f"Coins in quartal: {feature_dict['coins_in_quartal']}")
+        # self.logger.debug(f"Coin indicator: {feature_dict['coin_indicator']}")
+        # self.logger.debug(f"Actions: {ACTIONS}")
+        # self.logger.debug(f"Q-Values: {q_values}")
+        # self.logger.debug(f"Choosing action {ACTIONS[np.argmax(q_values)]}.")
+        # self.logger.debug(f"Real-Actions: {[action_map(a) for a in ACTIONS]}")
+        # self.logger.debug(f"{game_state['step']}")
     
     return action_map(ACTIONS[np.argmax(q_values)])
     
 def normalize_state(game_state):
     if game_state == None:
         return lambda a: a
-        
+    
+    agent_x, agent_y = game_state['self'][3]
+    
     def flip_tuple_x(t):
         return (16 - t[0], t[1])
         
     def flip_tuple_y(t):
         return (t[0], 16 - t[1])
-        
-    def transpose_tuple(t):
-        return (t[1], t[0])
-    
-    agent_x, agent_y = game_state['self'][3]
-    
+   
     flipped_x = False
     if agent_x > 8:
         game_state['field'] = np.flipud(game_state['field'])
@@ -125,17 +123,17 @@ def normalize_state(game_state):
         game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_y(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         flipped_y = True
         
-    agent_x, agent_y = game_state['self'][3]
+    agent_x_update, agent_y_update = game_state['self'][3]
+    
+    def transpose_tuple(t):
+        return (t[1], t[0])
     
     transposed_board = False
-    if agent_y > agent_x:
+    if agent_y_update > agent_x_update:
         game_state['field'] = np.transpose(game_state['field'])
-        game_state['bombs'] = [(transpose_tuple(pos), time) for pos, time in game_state['bombs']]
-        game_state['explosion_map'] = np.transpose(game_state['explosion_map'])
         game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
         name, score, canPlaceBomb, pos = game_state['self']
         game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
-        game_state['others'] = [(name, score, canPlaceBomb, transpose_tuple(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         transposed_board = True
 
     def action_map(a):
