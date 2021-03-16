@@ -10,12 +10,12 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent_4_look_around_with_mirroring_unique_coin_identifiers_75"
+AGENT_NAME = "linear_agent_5_look_around_with_mirroring_unique_coin_identifiers_75"
 
 NUM_ACTIONS = len(ACTIONS)
 
 # 0 <= NUM_LOOK_AROUND <= 15
-NUM_LOOK_AROUND = 4
+NUM_LOOK_AROUND = 5
 NUM_FEATURES = 2*(2*NUM_LOOK_AROUND+1)*(2*NUM_LOOK_AROUND+1) + 4
 
 EPSILON_TRAIN_VALUES = [0.5, 0.2]
