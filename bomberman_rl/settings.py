@@ -9,7 +9,7 @@ CRATE_DENSITY = 0.0
 MAX_AGENTS = 4
 
 # Round properties
-MAX_STEPS = 400
+MAX_STEPS = 3000
 
 # GUI properties
 GRID_SIZE = 30
@@ -40,7 +40,7 @@ INPUT_MAP = {
 }
 
 # Custom settings
-COIN_MULTIPLIER = 10
+COIN_MULTIPLIER = 3
 
 # Logging levels
 LOG_GAME = logging.INFO
