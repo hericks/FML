@@ -10,7 +10,7 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent_4_look_around_without_mirroring"
+AGENT_NAME = "linear_agent_4_look_around_with_mirroring_unique_coin_identifiers"
 
 NUM_ACTIONS = len(ACTIONS)
 
@@ -101,26 +101,26 @@ def normalize_state(game_state):
         return (t[0], 16 - t[1])
    
     flipped_x = False
-    # if agent_x > 8:
-    #     game_state['field'] = np.flipud(game_state['field'])
-    #     game_state['bombs'] = [(flip_tuple_x(pos), time) for pos, time in game_state['bombs']]
-    #     game_state['explosion_map'] = np.flipud(game_state['explosion_map'])
-    #     game_state['coins'] = [flip_tuple_x(coin) for coin in game_state['coins']]
-    #     name, score, canPlaceBomb, pos = game_state['self']
-    #     game_state['self'] = (name, score, canPlaceBomb, flip_tuple_x(pos))
-    #     game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_x(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
-    #     flipped_x = True
+    if agent_x > 8:
+        game_state['field'] = np.flipud(game_state['field'])
+        game_state['bombs'] = [(flip_tuple_x(pos), time) for pos, time in game_state['bombs']]
+        game_state['explosion_map'] = np.flipud(game_state['explosion_map'])
+        game_state['coins'] = [flip_tuple_x(coin) for coin in game_state['coins']]
+        name, score, canPlaceBomb, pos = game_state['self']
+        game_state['self'] = (name, score, canPlaceBomb, flip_tuple_x(pos))
+        game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_x(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
+        flipped_x = True
 
     flipped_y = False
-    # if agent_y > 8:
-    #     game_state['field'] = np.fliplr(game_state['field'])
-    #     game_state['bombs'] = [(flip_tuple_y(pos), time) for pos, time in game_state['bombs']]
-    #     game_state['explosion_map'] = np.fliplr(game_state['explosion_map'])
-    #     game_state['coins'] = [flip_tuple_y(coin) for coin in game_state['coins']]
-    #     name, score, canPlaceBomb, pos = game_state['self']
-    #     game_state['self'] = (name, score, canPlaceBomb, flip_tuple_y(pos))
-    #     game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_y(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
-    #     flipped_y = True
+    if agent_y > 8:
+        game_state['field'] = np.fliplr(game_state['field'])
+        game_state['bombs'] = [(flip_tuple_y(pos), time) for pos, time in game_state['bombs']]
+        game_state['explosion_map'] = np.fliplr(game_state['explosion_map'])
+        game_state['coins'] = [flip_tuple_y(coin) for coin in game_state['coins']]
+        name, score, canPlaceBomb, pos = game_state['self']
+        game_state['self'] = (name, score, canPlaceBomb, flip_tuple_y(pos))
+        game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_y(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
+        flipped_y = True
 
     def action_map(a):
         if flipped_x:
@@ -162,7 +162,7 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
         x_rel, y_rel = x - self_x, y - self_y
         coin_map[15 + y_rel, 15 + x_rel] = 1
         
-    coins_in_quartal = [np.sum(coin_map[0:16,0:16]), np.sum(coin_map[0:16,15:32]), np.sum(coin_map[15:32,0:16]), np.sum(coin_map[15:32,15:32])]
+    coins_in_quartal = [np.sum(coin_map[0:16,0:16]), np.sum(coin_map[0:16,16:32]), np.sum(coin_map[16:32,0:16]), np.sum(coin_map[16:32,16:32])]
     
     index_min = 15 - NUM_LOOK_AROUND
     index_max = 16 + NUM_LOOK_AROUND
