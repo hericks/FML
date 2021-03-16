@@ -68,7 +68,11 @@ def act(self, game_state: dict) -> str:
     
     if (self.train and random.random() < epsilon_train) or (not self.train and random.random() < EPSILON_PLAY):
         # self.logger.debug("Choosing action purely at random.")
-        return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1])  action_map = normalize_state(game_state) features = state_to_features(game_state) q_values = np.dot(self.weights, features)
+        return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1]) 
+    
+    action_map = normalize_state(game_state)
+    features = state_to_features(game_state)
+    q_values = np.dot(self.weights, features)
     
     if not self.train:
         feature_dict = state_to_features(game_state, True)
