@@ -138,12 +138,12 @@ def normalize_state(game_state):
     
     transposed_board = False
     # TODO: UPDATE OTHER DICT ENTRIES
-    # if agent_y_update > agent_x_update:
-    #     game_state['field'] = np.transpose(game_state['field'])
-    #     game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
-    #     name, score, canPlaceBomb, pos = game_state['self']
-    #     game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
-    #     transposed_board = True
+    if agent_y_update > agent_x_update:
+        game_state['field'] = np.transpose(game_state['field'])
+        game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
+        name, score, canPlaceBomb, pos = game_state['self']
+        game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
+        transposed_board = True
 
     def action_map(a):
         if transposed_board:
@@ -182,8 +182,7 @@ def normalize_state(game_state):
 def state_to_features(game_state: dict, readable = False) -> np.array:
     """
     Converts the game state to the input of your model, i.e.
-    a feature vector.
-
+    a feature vector. 
     :param game_state:  A dictionary describing the current game board.
     :return: np.array (NUM_FEATURES,)
     """
