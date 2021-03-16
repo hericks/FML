@@ -67,12 +67,12 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     # Idea: Add your own events to hand out rewards
     # if ...:
     #     events.append(PLACEHOLDER_EVENT)
-    
-    action_map = normalize_state(old_game_state)
-    _          = normalize_state(new_game_state)
+
+    _, reverse_action_map = normalize_state(old_game_state)
+    normalize_state(new_game_state)
 
     S = state_to_features(old_game_state)
-    A = action_map(self_action)
+    A = reverse_action_map(self_action)
     R_new = reward_from_events(self, events)
     S_new = state_to_features(new_game_state)
     

@@ -70,7 +70,7 @@ def act(self, game_state: dict) -> str:
         # self.logger.debug("Choosing action purely at random.")
         return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1]) 
     
-    action_map = normalize_state(game_state)
+    action_map, _ = normalize_state(game_state)
     features = state_to_features(game_state)
     q_values = np.dot(self.weights, features)
     
@@ -90,8 +90,16 @@ def act(self, game_state: dict) -> str:
     return action_map(ACTIONS[np.argmax(q_values)])
     
 def normalize_state(game_state):
+    """
+    :param game_state: The dictionary that to normalize (in-place).
+    
+    :return: action_map: function to map action in normalized state to action in input_state,
+    reverse_action_map: function to map action in input_state to action in normalized state.
+    
+    """
+   
     if game_state == None:
-        return lambda a: a
+        return lambda a: a, lambda a: a
     
     agent_x, agent_y = game_state['self'][3]
     
@@ -152,7 +160,24 @@ def normalize_state(game_state):
             a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
         return a
         
-    return action_map 
+    def reverse_action_map(a):
+        if flipped_x:
+            a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
+        if flipped_y:
+            a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
+        if transposed_board:
+            if a == 'RIGHT':
+                a = 'DOWN'
+            elif a == 'DOWN':
+                a = 'RIGHT'
+            elif a == 'LEFT':
+                a = 'UP'
+            elif a == 'UP':
+                a = 'LEFT'
+        return a
+        
+    return action_map, reverse_action_map
+
 def state_to_features(game_state: dict, readable = False) -> np.array:
     """
     Converts the game state to the input of your model, i.e.
