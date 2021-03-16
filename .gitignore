@@ -5,5 +5,4 @@
 *.pyc
 *.log
 .ipynb_checkpoints
-*.pt
 __pycache__
