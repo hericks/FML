@@ -33,11 +33,24 @@ def setup_training(self):
     self.history['numInvalidActions'] = deque()
     self.history['roundLength'] = deque()
     self.history['epsilon'] = deque()
-    
-    self.historyFilePath = datetime.now().strftime(f"histories/history_{AGENT_NAME}_%d_%m_%Y_%H_%M_%S_%f.pt")
+   
+    self.historyFolder = f"histories/{AGENT_NAME}"
+    self.historyFilePath = datetime.now().strftime(f"{self.historyFolder}/%d_%m_%Y_%H_%M_%S_%f.pt")
     
     self.numInvalidActions = 0
     self.numCoinsCollected = 0
+   
+    
+    if not os.path.exists(self.historyFolder):
+      try:
+        os.mkdir(self.historyFolder)
+      except OSError:
+        self.logger.info(f"Creation of the directory {self.historyFolder} failed")
+      else:
+        self.logger.info(f"Successfully created the directory {self.historyFolder}")
+    else:
+        self.logger.info(f"The directory {self.historyFolder} already exists.")
+        
     
     self.logger.info(f"Saving history to {self.historyFilePath}.")
 
@@ -54,9 +67,12 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     # Idea: Add your own events to hand out rewards
     # if ...:
     #     events.append(PLACEHOLDER_EVENT)
+    
+    action_map = normalize_state(old_game_state)
+    _          = normalize_state(new_game_state)
 
     S = state_to_features(old_game_state)
-    A = self_action
+    A = action_map(self_action)
     R_new = reward_from_events(self, events)
     S_new = state_to_features(new_game_state)
     
