@@ -10,7 +10,7 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent_3_look_around"
+AGENT_NAME = "linear_agent_3_look_around_disc=0.96"
 
 NUM_ACTIONS = len(ACTIONS)
 
