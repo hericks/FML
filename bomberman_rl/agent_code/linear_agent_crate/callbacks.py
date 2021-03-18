@@ -137,12 +137,14 @@ def normalize_state(game_state):
         return (t[1], t[0])
     
     transposed_board = False
-    # TODO: UPDATE OTHER DICT ENTRIES
     if agent_y_update > agent_x_update:
         game_state['field'] = np.transpose(game_state['field'])
+        game_state['bombs'] = [(transpose_tuple(pos), time) for pos, time in game_state['bombs']]
+        game_state['explosion_map'] = np.transpose(game_state['explosion_map'])
         game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
         name, score, canPlaceBomb, pos = game_state['self']
         game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
+        game_state['others'] = [(name, score, canPlaceBomb, transpose_tuple(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         transposed_board = True
 
     def action_map(a):
