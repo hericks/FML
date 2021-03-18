@@ -17,7 +17,7 @@ Transition = namedtuple('Transition',
 
 # Hyper parameters
 LEARNING_RATE = 0.0001
-DISCOUNT_FACTOR = 0.995
+DISCOUNT_FACTOR = 0.7
 
 
 def setup_training(self):
