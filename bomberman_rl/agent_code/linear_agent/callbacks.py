@@ -10,18 +10,18 @@ import sys
 
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-AGENT_NAME = "linear_agent_3_look_around_disc=0.96"
+AGENT_NAME = "linear_agent_4_look_around_disc=0.7"
 
 NUM_ACTIONS = len(ACTIONS)
 
 # 0 <= NUM_LOOK_AROUND <= 15
-NUM_LOOK_AROUND = 3
+NUM_LOOK_AROUND = 4
 NUM_FEATURES = 2*(2*NUM_LOOK_AROUND+1)*(2*NUM_LOOK_AROUND+1) + 4
 
 EPSILON_TRAIN_VALUES = [0.5, 0.2]
 EPSILON_TRAIN_BREAKS = [0, 150]
 
-EPSILON_PLAY = 0.2
+EPSILON_PLAY = 0.35
 
 STDOUT_LOGLEVEL = logging.DEBUG
 
