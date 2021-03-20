@@ -44,7 +44,14 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
         coin_map[15 + y_rel, 15 + x_rel] = 1
   
     bombs = game_state['bombs']
-    print(get_unsafe_positions(game_state['field'], bombs))
+   
+    # print("TEST") 
+    # print(get_reachable_states(game_state['self'][3], 0, game_state['field']))
+    # print(get_reachable_states(game_state['self'][3], 1, game_state['field']))
+    # print(get_reachable_states(game_state['self'][3], 2, game_state['field']))
+    print(is_safe_death(game_state['self'][3], field, bombs))
+    print(get_reachable_safe_tiles(game_state['self'][3], field, bombs))
+    
     
     return [0]
 
@@ -79,3 +86,55 @@ def get_unsafe_positions(field, bombs):
    
   # TODO: Remove duplicates 
   return unsafe_positions
+
+def get_reachable_tiles(pos, num_steps, field):
+  if num_steps == 0:
+    return [pos]
+  elif num_steps == 1:
+    ret = [pos]
+    pos_x, pos_y = pos
+    
+    pos_update = (pos_x + 1, pos_y) 
+    ret.append(pos_update) if field[pos_update] == 0 else None
+    
+    pos_update = (pos_x - 1, pos_y) 
+    ret.append(pos_update) if field[pos_update] == 0 else None
+    
+    pos_update = (pos_x, pos_y + 1) 
+    ret.append(pos_update) if field[pos_update] == 0 else None
+    
+    pos_update = (pos_x, pos_y - 1) 
+    ret.append(pos_update) if field[pos_update] == 0 else None
+    
+    return ret
+  else:
+    candidates = get_reachable_tiles(pos, num_steps - 1, field)
+    ret = []
+    for pos in candidates:
+      ret.extend(x for x in get_reachable_tiles(pos, 1, field) if x not in ret)
+    return ret
+    
+def get_reachable_safe_tiles(pos, field, bombs, timeoffset):
+  if len(bombs) == 0:
+    raise ValueError("No bombs placed.")
+  
+  reachable_tiles = set(get_reachable_tiles(pos, bombs[0][1] + 1 - timeoffset, field))
+  unsafe_tiles = set(get_unsafe_positions(field, bombs))
+  
+  return [pos for pos in reachable_tiles if pos not in unsafe_tiles] 
+  
+
+def is_safe_death(pos, field, bombs):
+  if len(bombs) == 0:
+    return False
+   
+  reachable_tiles = set(get_reachable_tiles(pos, bombs[0][1] + 1, field))
+  unsafe_tiles = set(get_unsafe_positions(field, bombs))
+  
+  return True if reachable_tiles.issubset(unsafe_tiles) else False
+  
+def is_safe_death_2(pos, field, bombs, timeoffset):
+  if len(bombs) == 0:
+    return False
+  
+  return len(get_reachable_safe_tiles(pos, field, bombs, timeoffset)) > 0)
