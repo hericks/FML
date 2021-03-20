@@ -16,7 +16,6 @@ NUM_ACTIONS = len(ACTIONS)
 
 # 0 <= NUM_LOOK_AROUND <= 15
 NUM_LOOK_AROUND = 4
-NUM_FEATURES = 2*(2*NUM_LOOK_AROUND+1)*(2*NUM_LOOK_AROUND+1) + 4
 
 EPSILON_TRAIN_VALUES = [0.5, 0.2]
 EPSILON_TRAIN_BREAKS = [0, 150]
@@ -35,6 +34,7 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
+    
     if STDOUT_LOGLEVEL != None:
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(STDOUT_LOGLEVEL)
@@ -180,6 +180,21 @@ def normalize_state(game_state):
         return a
         
     return action_map, reverse_action_map
+    
+    
+def get_num_features():
+    dummy_state = {
+      'round': 0,
+      'step': 0,
+      'field': np.zeros((17, 17)),
+      'bombs': [],
+      'explosion_map': np.zeros((17, 17)),
+      'coins': [],
+      'self': ("dummy", 0, True, (1, 1)),
+      'others': []
+    }
+    
+    return state_to_features(dummy_state).shape[0]
 
 def state_to_features(game_state: dict, readable = False) -> np.array:
     """
@@ -196,14 +211,16 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
     self_x, self_y = game_state['self'][3]
     
     wall_map = np.zeros((31, 31)) 
+    crate_map = np.zeros((31, 31))
     field = game_state['field'] 
     for x in np.arange(17):
         for y in np.arange(17):
-            if (field[x, y] != -1):
-                continue 
-            
             x_rel, y_rel = x - self_x, y - self_y
-            wall_map[15 + y_rel, 15 + x_rel] = 1
+            if (field[x, y] == -1):
+              wall_map[15 + y_rel, 15 + x_rel] = 1
+            if (field[x, y] != 1):
+              print(x_rel, y_rel)
+              crate_map[15 + y_rel, 15 + x_rel] = 1
             
     coin_map = np.zeros((31, 31)) 
     coins = game_state['coins']
@@ -211,23 +228,46 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
         x_rel, y_rel = x - self_x, y - self_y
         coin_map[15 + y_rel, 15 + x_rel] = 1
         
-    coins_in_quartal = [np.sum(coin_map[0:16,0:16]), np.sum(coin_map[0:16,16:32]), np.sum(coin_map[16:32,0:16]), np.sum(coin_map[16:32,16:32])]
+    bomb_map_0 = np.zeros((31, 31)) 
+    bombs = game_state['bombs']
+    for pos, time in bombs:
+        x, y = pos
+        x_rel, y_rel = x - self_x, y - self_y
+        if time == 0:
+          bomb_map_0[15 + y_rel, 15 + x_rel]
     
-    index_min = 15 - NUM_LOOK_AROUND
-    index_max = 16 + NUM_LOOK_AROUND
-    channels = [wall_map[index_min:index_max,index_min:index_max], coin_map[index_min:index_max,index_min:index_max]]
+    return np.array([0])
 
-    max_coin_quartal = np.zeros(4) 
-    max_coin_quartal[np.argmax(coins_in_quartal)] = 1
+
+def get_unsafe_positions(field, bombs):
+  unsafe_positions = []
+  for bomb_pos, _ in bombs:
+    unsafe_positions.append(bomb_pos)
     
-    if readable:
-        return {
-            "wall_map": channels[0],
-            "coin_map": channels[1],
-            "coins_in_quartal_description": ['OL', 'OR', 'UL', 'UR'],
-            "coins_in_quartal": coins_in_quartal,
-            "coin_indicator": max_coin_quartal
-        }
-    
-    return np.append(np.stack(channels).reshape(-1), max_coin_quartal)
+    for x_offset in range(1, 4):
+      pos = (bomb_pos[0] + x_offset, bomb_pos[1])
+      if pos[0] > 16 or field[pos] == -1:
+        break
+      unsafe_positions.append(pos)
+      
+    for x_offset in range(-1, -4, -1):
+      pos = (bomb_pos[0] + x_offset, bomb_pos[1])
+      if pos[0] < 0 or field[pos] == -1:
+        break
+      unsafe_positions.append(pos)
+      
+    for y_offset in range(1, 4):
+      pos = (bomb_pos[0], bomb_pos[1] + y_offset)
+      if pos[0] > 16 or field[pos] == -1:
+        break
+      unsafe_positions.append(pos)
+      
+    for y_offset in range(-1, -4, -1):
+      pos = (bomb_pos[0], bomb_pos[1] + y_offset)
+      if pos[0] < 0 or field[pos] == -1:
+        break
+      unsafe_positions.append(pos)
+   
+  # TODO: Remove duplicates 
+  return unsafe_positions
 
