@@ -16,7 +16,7 @@ rounds=$2   #rounds says how many rounds the agent should train
 for run in $(eval echo {1..$n})
 do
     printf "${BLUE}****************************\n ${GREEN}started training number $run ${NC}\n"
-    python main.py play --agents linear_agent --train 1 --n-rounds $rounds --no-gui
+    python main.py play --agents linear_agent_coin --train 1 --n-rounds $rounds --no-gui
     printf "\n${GREEN} finished training number $run \n"
 done
 printf "${GREEN}\n ... done! \n${BLUE}****************************${NC}"
