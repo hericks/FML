@@ -47,20 +47,22 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
     pos = game_state['self'][3]
     bombs = game_state['bombs']
     
-    print("\n\n\nCurrent state and now.") 
-    print(f"Reachable in 0 steps: {get_reachable_tiles(pos, 0, field)}")
-    print(f"Reachable in 1 steps: {get_reachable_tiles(pos, 1, field)}")
-    print(f"Reachable in 2 steps: {get_reachable_tiles(pos, 2, field)}")
-
-    if (len(bombs) == 0):
-      print("No bombs placed. All tiles safe.")
-    else:
-      print(f"Reachable safe tiles: {get_reachable_safe_tiles(pos, field, bombs, look_ahead = False)}")
-      
-    print(f"Is save death: {is_safe_death(pos, field, bombs, look_ahead = False)}")
-
-    print(f"\n U D R L W")
-    print(f"{get_safe_death_features(pos, field, bombs)}")
+    # print("\n\n\nCurrent state and now.") 
+    # print(f"Reachable in 0 steps: {get_reachable_tiles(pos, 0, field)}")
+    # print(f"Reachable in 1 steps: {get_reachable_tiles(pos, 1, field)}")
+    # print(f"Reachable in 2 steps: {get_reachable_tiles(pos, 2, field)}")
+    # 
+    # if (len(bombs) == 0):
+    #   print("No bombs placed. All tiles safe.")
+    # else:
+    #   print(f"Reachable safe tiles: {get_reachable_safe_tiles(pos, field, bombs, look_ahead = False)}")
+    #   
+    # print(f"Is save death: {is_safe_death(pos, field, bombs, look_ahead = False)}")
+    # 
+    # print(f"\n U D R L W")
+    # print(f"{get_safe_death_features(pos, field, bombs)}")
+    
+    print(f"{is_bomb_suicide(pos, field)}")
 
 def get_unsafe_tiles(field, bombs):
   unsafe_positions = []
@@ -139,3 +141,6 @@ def get_safe_death_features(pos, field, bombs):
     else:
       ret = np.append(ret, 1 if is_safe_death(pos, field, bombs) else 0)
   return ret
+  
+def is_bomb_suicide(pos, field):
+  return is_safe_death(pos, field, [((pos), 3)], look_ahead = False)
