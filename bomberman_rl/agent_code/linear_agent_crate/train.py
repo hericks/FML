@@ -33,13 +33,14 @@ def setup_training(self):
     self.history['numInvalidActions'] = deque()
     self.history['roundLength'] = deque()
     self.history['epsilon'] = deque()
+    self.history['numCratesDestroyed'] = deque()
    
     self.historyFolder = f"histories/{AGENT_NAME}"
     self.historyFilePath = datetime.now().strftime(f"{self.historyFolder}/%d_%m_%Y_%H_%M_%S_%f.pt")
     
     self.numInvalidActions = 0
     self.numCoinsCollected = 0
-   
+    self.numCratesDestroyed = 0
     
     if not os.path.exists(self.historyFolder):
       try:
@@ -92,11 +93,16 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
         
     if e.COIN_COLLECTED in events:
       self.numCoinsCollected += 1
-    
+     
+    for event in events:
+      if event == e.CRATE_DESTROYED:
+        self.numCratesDestroyed += 1
     
 def perform_semi_gradient_sarsa_update(self, S, A, R, S_new, A_new):
     weights = self.weights 
-    diff = R + DISCOUNT_FACTOR * evaluate_q(S_new, A_new, weights) - evaluate_q(S, A, weights)
+    diff = R - evaluate_q(S, A, weights)
+    if not S_new is None:
+      diff += DISCOUNT_FACTOR * evaluate_q(S_new, A_new, weights)
     derivative = np.zeros_like(weights)
     derivative[ACTIONS.index(A)] = S
     # print(diff)
@@ -115,18 +121,35 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
 
     :param self: The same object that is passed to all of your callbacks.
     """
-    # self.logger.debug(f'Encountered event(s) {", ".join(map(repr, events))} in final step')
-    # self.transitions.append(Transition(state_to_features(last_game_state), last_action, None, reward_from_events(self, events)))
+    
+    # logging
+    if e.INVALID_ACTION in events:
+      self.numInvalidActions += 1
+        
+    if e.COIN_COLLECTED in events:
+      self.numCoinsCollected += 1
+     
+    for event in events:
+      if event == e.CRATE_DESTROYED:
+        self.numCratesDestroyed += 1
+    
+    _, reverse_action_map = normalize_state(last_game_state)
+    S = state_to_features(last_game_state)
+    A = reverse_action_map(last_action)
+    R = reward_from_events(self, events)
+    perform_semi_gradient_sarsa_update(self, S, A, R, None, None)
 
     # update history
     self.history['numInvalidActions'].append(self.numInvalidActions)
     self.history['numCoinsCollected'].append(self.numCoinsCollected)
     self.history['roundLength'].append(last_game_state['step'])
     self.history['epsilon'].append(np.interp(last_game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES))
+    self.history['numCratesDestroyed'].append(self.numCratesDestroyed)
     
     # logging 
-    self.logger.info(f'{self.numInvalidActions} invalid moves were played during this game.')
-    self.logger.info(f'{self.numCoinsCollected} coins were collected during this game.')
+    self.logger.info(f'{self.numInvalidActions} invalid moves were played.')
+    self.logger.info(f'{self.numCoinsCollected} coins were collected.')
+    self.logger.info(f'{self.numCratesDestroyed} crates were destroyed.')
     self.logger.info(f'The game went for {last_game_state["step"]} steps.')
     
     normalize_state(last_game_state)
@@ -144,13 +167,16 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.lastTransition = None
     self.numInvalidActions = 0
     self.numCoinsCollected = 0
+    self.numCratesDestroyed = 0
 
 def reward_from_events(self, events: List[str]) -> int:
     """
     Modify rewards to en/discourage certain behavior.
     """
     game_rewards = {
-        e.COIN_COLLECTED: 1
+        e.COIN_COLLECTED: 5,
+        e.CRATE_DESTROYED: 1,
+        e.KILLED_SELF: -10
     }
     reward_sum = 0
     for event in events:
