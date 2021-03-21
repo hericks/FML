@@ -14,7 +14,7 @@ NUM_ACTIONS = len(ACTIONS)
 AGENT_NAME = "linear_agent_crate_first_try"
 
 # 0 <= NUM_LOOK_AROUND <= 15
-NUM_LOOK_AROUND = 3
+NUM_LOOK_AROUND = 1
 
 EPSILON_TRAIN_VALUES = [0.25, 0.1]
 EPSILON_TRAIN_BREAKS = [0, 150]
@@ -75,16 +75,10 @@ def act(self, game_state: dict) -> str:
     
     if not self.train:
         feature_dict = state_to_features(game_state, True)
-        # self.logger.debug(f"Wall map: \n{feature_dict['wall_map']}")
-        # self.logger.debug(f"Coin map: \n{feature_dict['coin_map']}")
-        # self.logger.debug(f"Coins in quartal desc: {feature_dict['coins_in_quartal_description']}")
-        # self.logger.debug(f"Coins in quartal: {feature_dict['coins_in_quartal']}")
-        # self.logger.debug(f"Coin indicator: {feature_dict['coin_indicator']}")
-        # self.logger.debug(f"Actions: {ACTIONS}")
-        # self.logger.debug(f"Q-Values: {q_values}")
-        # self.logger.debug(f"Choosing action {ACTIONS[np.argmax(q_values)]}.")
-        # self.logger.debug(f"Real-Actions: {[action_map(a) for a in ACTIONS]}")
-        # self.logger.debug(f"{game_state['step']}")
+        for key in feature_dict.keys():
+          print(f"{key}:")
+          print(f"{feature_dict[key]}")
+        print("\n\n")
     
     return action_map(ACTIONS[np.argmax(q_values)])
     
@@ -230,19 +224,33 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
     index_min = 15 - NUM_LOOK_AROUND
     index_max = 16 + NUM_LOOK_AROUND
     
+    wall_map = wall_map[index_min:index_max,index_min:index_max]
+    crate_map = crate_map[index_min:index_max,index_min:index_max]
+    
     channels = []
-    channels.append(wall_map[index_min:index_max,index_min:index_max])
-    channels.append(coin_map[index_min:index_max,index_min:index_max])
-    channels.append(crate_map[index_min:index_max,index_min:index_max])
+    channels.append(wall_map)
+    # channels.append(coin_map[index_min:index_max,index_min:index_max])
+    channels.append(crate_map)
 
     # extra features
     bombs = game_state['bombs']
     safe_death_features = get_safe_death_features((self_x, self_y), field, bombs)
-    can_place_bomb = np.array([game_state['self'][2]], dtype = np.int32)
    
     features = np.stack(channels).reshape(-1)
-    features = np.append(features, can_place_bomb)
+    features = np.append(features, game_state['self'][2])
+    features = np.append(features, is_bomb_suicide((self_x, self_y), field))
     features = np.append(features, safe_death_features)
+   
+    if readable:
+      return {
+        'wall_map': wall_map,
+        'crate_map': crate_map,
+        'can_place_bomb': game_state['self'][2],
+        'is_bomb_suicide': is_bomb_suicide((self_x, self_y), field),
+        'safe_death_features': safe_death_features,
+        'raw_features': features
+      }
+    
     return features
 
 def get_unsafe_tiles(field, bombs):
@@ -322,3 +330,6 @@ def get_safe_death_features(pos, field, bombs):
     else:
       ret = np.append(ret, 1 if is_safe_death(pos, field, bombs) else 0)
   return ret
+  
+def is_bomb_suicide(pos, field):
+  return is_safe_death(pos, field, [((pos), 3)], look_ahead = False)

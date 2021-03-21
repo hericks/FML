@@ -19,7 +19,6 @@ Transition = namedtuple('Transition',
 LEARNING_RATE = 0.0001
 DISCOUNT_FACTOR = 0.995
 
-
 def setup_training(self):
     """
     Initialise self for training purpose.
@@ -41,6 +40,8 @@ def setup_training(self):
     self.numInvalidActions = 0
     self.numCoinsCollected = 0
     self.numCratesDestroyed = 0
+    self.numBombsDropped = 0
+    self.cumulativeRewards = 0
     
     if not os.path.exists(self.historyFolder):
       try:
@@ -93,10 +94,16 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
         
     if e.COIN_COLLECTED in events:
       self.numCoinsCollected += 1
+      
+    if e.BOMB_DROPPED in events:
+      self.numBombsDropped += 1
      
     for event in events:
       if event == e.CRATE_DESTROYED:
         self.numCratesDestroyed += 1
+        
+    self.cumulativeRewards += R_new
+        
     
 def perform_semi_gradient_sarsa_update(self, S, A, R, S_new, A_new):
     weights = self.weights 
@@ -132,11 +139,15 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     for event in events:
       if event == e.CRATE_DESTROYED:
         self.numCratesDestroyed += 1
+        
+    if e.BOMB_DROPPED in events:
+      self.numBombsDropped += 1
     
     _, reverse_action_map = normalize_state(last_game_state)
     S = state_to_features(last_game_state)
     A = reverse_action_map(last_action)
     R = reward_from_events(self, events)
+    self.cumulativeRewards += R
     perform_semi_gradient_sarsa_update(self, S, A, R, None, None)
 
     # update history
@@ -147,9 +158,11 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.history['numCratesDestroyed'].append(self.numCratesDestroyed)
     
     # logging 
+    self.logger.info(f'cumulativeRewards: {self.cumulativeRewards}')
     self.logger.info(f'{self.numInvalidActions} invalid moves were played.')
     self.logger.info(f'{self.numCoinsCollected} coins were collected.')
     self.logger.info(f'{self.numCratesDestroyed} crates were destroyed.')
+    self.logger.info(f'{self.numBombsDropped} bombs were dropped.')
     self.logger.info(f'The game went for {last_game_state["step"]} steps.')
     
     normalize_state(last_game_state)
@@ -168,6 +181,8 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     self.numInvalidActions = 0
     self.numCoinsCollected = 0
     self.numCratesDestroyed = 0
+    self.numBombsDropped = 0
+    self.cumulativeRewards = 0
 
 def reward_from_events(self, events: List[str]) -> int:
     """
@@ -181,5 +196,5 @@ def reward_from_events(self, events: List[str]) -> int:
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
-    # self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
+
     return reward_sum
