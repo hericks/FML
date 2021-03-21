@@ -5,11 +5,11 @@ from fallbacks import pygame
 # Game properties
 COLS = 17
 ROWS = 17
-CRATE_DENSITY = 0.95
+CRATE_DENSITY = 0.1
 MAX_AGENTS = 4
 
 # Round properties
-MAX_STEPS = 3000
+MAX_STEPS = 400
 
 # GUI properties
 GRID_SIZE = 30
@@ -40,7 +40,7 @@ INPUT_MAP = {
 }
 
 # Custom settings
-COIN_MULTIPLIER = 3
+COIN_MULTIPLIER = 1
 
 # Logging levels
 LOG_GAME = logging.INFO
