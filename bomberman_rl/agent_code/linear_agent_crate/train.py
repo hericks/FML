@@ -17,7 +17,7 @@ Transition = namedtuple('Transition',
 
 # Hyper parameters
 LEARNING_RATE = 0.0001
-DISCOUNT_FACTOR = 0.7
+DISCOUNT_FACTOR = 0.995
 
 
 def setup_training(self):
@@ -174,13 +174,12 @@ def reward_from_events(self, events: List[str]) -> int:
     Modify rewards to en/discourage certain behavior.
     """
     game_rewards = {
-        e.COIN_COLLECTED: 5,
-        e.CRATE_DESTROYED: 1,
-        e.KILLED_SELF: -10
+        e.BOMB_DROPPED: 1,
+        e.KILLED_SELF: -50,
     }
     reward_sum = 0
     for event in events:
         if event in game_rewards:
             reward_sum += game_rewards[event]
     # self.logger.info(f"Awarded {reward_sum} for events {', '.join(events)}")
-    return reward_sum - 0.01
+    return reward_sum
