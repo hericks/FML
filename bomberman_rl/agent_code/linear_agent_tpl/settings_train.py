@@ -12,7 +12,7 @@ EPSILON_TRAIN_VALUES = [0.25, 0.1]
 EPSILON_TRAIN_BREAKS = [0, 150]
 
 # Settings for TRAIN_POLICY_TYPE == 'SOFTMAX'
-# lower -> more greedy; higher -> more randomness
+# lower -> more randomness; higher -> more greedy
 INVERSE_TEMPERATURE_TRAIN_VALUES = [1000, 100]
 INVERSE_TEMPERATURE_TRAIN_BREAKS = [0, 150]
 
