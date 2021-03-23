@@ -212,13 +212,14 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
         coin_map[15 + y_rel, 15 + x_rel] = 1
         
     coins_in_quartal = [np.sum(coin_map[0:16,0:16]), np.sum(coin_map[0:16,16:32]), np.sum(coin_map[16:32,0:16]), np.sum(coin_map[16:32,16:32])]
-    
+
     index_min = 15 - NUM_LOOK_AROUND
     index_max = 16 + NUM_LOOK_AROUND
     channels = [wall_map[index_min:index_max,index_min:index_max], coin_map[index_min:index_max,index_min:index_max]]
 
     max_coin_quartal = np.zeros(4) 
     max_coin_quartal[np.argmax(coins_in_quartal)] = 1
+
     
     if readable:
         return {
@@ -231,3 +232,117 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
     
     return np.append(np.stack(channels).reshape(-1), max_coin_quartal)
 
+
+def get_nearest_coin_path(field, pos, coins):
+    """
+    This function finds the path that need the fewest steps from the agents current position to the nearest coin
+    :param field: a 2D numpy array of the field (empty, crates, walls)
+    :param pos: a (x,y) tuple with the agents position
+    :param coins: a 2D numpy array of the coin map
+    :return: a list refers to the the path from the agent to the nearest coin
+    """
+
+    min_path_val = 1000
+    for coin in coins:
+        path = shortest_path(field, pos, coin, None)
+        len_path = len(path)
+        if len_path < min_path_val:
+            min_path_val = len_path
+            min_path = path
+
+    return min_path
+
+
+def shortest_path_map(field, pos):
+    """
+    This function finds the shortest path from the current position of the agent to any other point
+    :param field: a 2D numpy array of the field (empty, crates, walls)
+    :param pos: a (x,y) tuple with the agents position
+    :return: a 2D numpy array of the maze, the nonzero entries describes
+        the number of steps the agent needs to this position
+    """
+
+    # build the maze
+    maze = np.zeros(field.shape)
+    maze[pos] = 1
+
+    def make_step(k):
+        for i in range(len(maze)):
+            for j in range(len(maze[i])):
+                if maze[i][j] == k:
+                    if i > 0 and maze[i - 1][j] == 0 and field[i - 1][j] == 0:
+                        maze[i - 1][j] = k + 1
+                    if j > 0 and maze[i][j - 1] == 0 and field[i][j - 1] == 0:
+                        maze[i][j - 1] = k + 1
+                    if i < len(maze) - 1 and maze[i + 1][j] == 0 and field[i + 1][j] == 0:
+                        maze[i + 1][j] = k + 1
+                    if j < len(maze[i]) - 1 and maze[i][j + 1] == 0 and field[i][j + 1] == 0:
+                        maze[i][j + 1] = k + 1
+
+    k = 0
+    while True:
+        k += 1
+        make_step(k)
+        if k>100: break
+
+    return maze
+
+def shortest_path(field, pos1, pos2, maze=None):
+    """
+    This function finds the shortest path between two positions on the map
+    :param field: a 2D numpy array of the field (empty, crates, walls)
+    :param pos1: a (x,y) tuple with the agents position
+    :param pos2: a (x,y) tuple with the destination position
+    :param maze: a 2D numpy array of the maze, the nonzero entries describes
+        the number of steps the agent needs to this position, if not given, it has to be calculated
+    :return: a list that contains the shortest path from our agents to the destination position
+    """
+
+    if maze == None:
+        if field[pos2] == 1: field[pos2] = 0
+        # build up the maze
+        maze = np.zeros(field.shape)
+        maze[pos1] = 1
+
+        def make_step(k):
+            for i in range(len(maze)):
+                for j in range(len(maze[i])):
+                    if maze[i][j] == k:
+                        if i > 0 and maze[i - 1][j] == 0 and field[i - 1][j] == 0:
+                            maze[i - 1][j] = k + 1
+                        if j > 0 and maze[i][j - 1] == 0 and field[i][j - 1] == 0:
+                            maze[i][j - 1] = k + 1
+                        if i < len(maze) - 1 and maze[i + 1][j] == 0 and field[i + 1][j] == 0:
+                            maze[i + 1][j] = k + 1
+                        if j < len(maze[i]) - 1 and maze[i][j + 1] == 0 and field[i][j + 1] == 0:
+                            maze[i][j + 1] = k + 1
+
+        k = 0
+        while maze[pos2[0]][pos2[1]] == 0:
+            k += 1
+            make_step(k)
+            if k>100: return None
+
+
+    i, j = pos2
+    k = maze[i][j]
+    path = [(i, j)]
+    while k > 1:
+        if i > 0 and maze[i - 1][j] == k - 1:
+            i, j = i - 1, j
+            path.append((i, j))
+            k -= 1
+        elif j > 0 and maze[i][j - 1] == k - 1:
+            i, j = i, j - 1
+            path.append((i, j))
+            k -= 1
+        elif i < len(maze) - 1 and maze[i + 1][j] == k - 1:
+            i, j = i + 1, j
+            path.append((i, j))
+            k -= 1
+        elif j < len(maze[i]) - 1 and maze[i][j + 1] == k - 1:
+            i, j = i, j + 1
+            path.append((i, j))
+            k -= 1
+
+    return path[::-1]
