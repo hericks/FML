@@ -62,7 +62,7 @@ def act(self, game_state: dict) -> str:
     :param game_state: The dictionary that describes everything on the board.
     :return: The action to take as a string.
     """
-  
+    
     epsilon_train = np.interp(game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES)
     
     if (self.train and random.random() < epsilon_train) or (not self.train and random.random() < EPSILON_PLAY):
@@ -73,12 +73,12 @@ def act(self, game_state: dict) -> str:
     features = state_to_features(game_state)
     q_values = np.dot(self.weights, features)
     
-    if not self.train:
-        feature_dict = state_to_features(game_state, True)
-        for key in feature_dict.keys():
-          print(f"{key}:")
-          print(f"{feature_dict[key]}")
-        print("\n\n")
+    if self.train:
+      import train
+      if TRAIN_POLICY_TYPE  == 'EPSILON_GREEDY':
+      elif TRAIN_POLICY_TYPE == 'SOFTMAX':
+    else:
+  
     
     return action_map(ACTIONS[np.argmax(q_values)])
     
