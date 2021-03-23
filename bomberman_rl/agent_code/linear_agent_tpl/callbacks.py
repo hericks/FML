@@ -37,8 +37,8 @@ def setup(self):
         self.logger.addHandler(handler)
         
     if self.train or not os.path.isfile("weights.pt"):
-        self.logger.info("Setting up model from scratch.")
-        self.weights = np.zeros((NUM_ACTIONS, get_num_features()))
+        self.logger.info(f"Setting up model from scratch (linear model with {get_num_features()} features).")
+        self.weights = np.zeros((len(ACTIONS), get_num_features()))
     else:
         self.logger.info("Loading model from saved state.")
         with open("weights.pt", "rb") as file:
