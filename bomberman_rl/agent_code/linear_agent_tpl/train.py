@@ -17,9 +17,9 @@ LEARNING_RATE = 0.0001
 DISCOUNT_FACTOR = 0.75
 
 # --- Policy settings
-TRAIN_POLICY_TYPE = ['EPSILON_GREEDY', 'SOFTMAX']
+TRAIN_POLICY_TYPE = ['EPSILON-GREEDY', 'SOFTMAX']
 
-# Settings for TRAIN_POLICY_TYPE == 'EPSILON_GREEDY'
+# Settings for TRAIN_POLICY_TYPE == 'EPSILON-GREEDY'
 EPSILON_TRAIN_VALUES = [0.25, 0.1]
 EPSILON_TRAIN_BREAKS = [0, 150]
 
@@ -28,7 +28,7 @@ TEMPERATURE_TRAIN_VALUES = [0.25, 0.1]
 TEMPERATURE_TRAIN_BREAKS = [0, 150]
 
 # --- Learning settings
-UPDATE_ALGORITHM = 'N-STEP_SARSA'
+UPDATE_ALGORITHM = 'N-STEP-SARSA'
 
 # Settings for UPDATE_ALGORITHM == 'SARSA'
 None
@@ -45,6 +45,7 @@ Transition = namedtuple('Transition',
 
 def setup_training(self):
     self.transition_history = []
+    self.transition_history_complete = False
   
     # setup everything related to history / monitoring
     setup_history(self)
@@ -113,12 +114,14 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
         reward_from_events(self, events)
     )
     self.transition_history.append(transition)
+    self.transition_history_complete = True
     
     # take update step; based exclusively on transition history
     perform_weight_update(self, terminal=True)
     
     # reset transition history
     self.transition_history = []
+    self.transition_history_complete = False
     
     # store the model
     with open("weights.pt", "wb") as file:
@@ -143,65 +146,50 @@ def reward_from_events(self, events: List[str]) -> int:
 # ------------------------------------------------------------------------------
 
 def perform_weight_update(self, terminal=False):
-  if UPDATE_ALGORITHM == 'SARSA':
-      perform_sarsa_weight_update(self, terminal)
-  elif UPDATE_ALGORITHM == 'N-STEP-SARSA':
-      if not terminal:
-          perform_n_step_sarsa_weight_update(self, NUM_SARSA_STEPS)
-      else:
-          perform_terminal_n_step_sarsa_weight_update(self, NUM_SARSA_STEPS)
-  else:
-      raise NotImplementedError(f"Update algorithm '{UPDATE_ALGORITHM}' is not implemented yet.")
+    if UPDATE_ALGORITHM == 'SARSA':
+        if not terminal:
+            tau = len(self.transition_history) - 2
+            perform_n_step_sarsa_weight_update(self, tau, 1)
+        else:
+            for tau in np.arange(len(self.transition_history) - 2, len(self.transition_history)):
+                perform_n_step_sarsa_weight_update(self, tau, 1)
+    elif UPDATE_ALGORITHM == 'N-STEP-SARSA':
+        if not terminal:
+            tau = len(self.transition_history) - NUM_SARSA_STEPS - 1
+            perform_n_step_sarsa_weight_update(self, tau, NUM_SARSA_STEPS)
+        else:
+            for tau in np.arange(len(self.transition_history) - NUM_SARSA_STEPS - 1, len(self.transition_history)):
+                perform_n_step_sarsa_weight_update(self, tau, NUM_SARSA_STEPS)
+    else:
+        raise NotImplementedError(f"Update algorithm '{UPDATE_ALGORITHM}' is not implemented yet.")
       
-def perform_n_step_sarsa_weight_update(self, n):
-    
-  
-  
-def perform_terminal_n_step_sarsa_weight_update(self, n):
-  
-  
-  
-  
-  
-  
-  
- 
- 
- 
-  
-  
-      
-def perform_sarsa_weight_update(self, terminal):
-    if len(self.transition_history) == 0:
+def perform_n_step_sarsa_weight_update(self, tau, n):
+    if tau < 0:
         return
-      
-    S, A, S_new, R_new = self.transition_history[-1]
   
-    if len(self.transition_history) > 2:
-        S_old, A_old, _, R = self.transition_history[-2]
-        diff = R + DISCOUNT_FACTOR * evaluate_q(S, A, self.weights) - evaluate_q(S_old, A_old, self.weights)
-        derivative = np.zeros_like(self.weights)
-        derivative[ACTIONS.index(A_old)] = S_old
-        self.weights = self.weights + LEARNING_RATE * diff * derivative
-      
-    if terminal:
-        diff = R_new - evaluate_q(S, A, self.weights)
-        derivative = np.zeros_like(self.weights)
-        derivative[ACTIONS.index(A)] = S
-        self.weights = self.weights + LEARNING_RATE * diff * derivative
-
-# Further objects
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+    # get S_tau, A_tau 
+    S_tau, A_tau, _, _ = self.transition_history[tau]
     
-def perform_semi_gradient_sarsa_update(self, S, A, R, S_new, A_new):
-    weights = self.weights 
-    diff = R - evaluate_q(S, A, weights)
-    if not S_new is None:
-        diff += DISCOUNT_FACTOR * evaluate_q(S_new, A_new, weights)
-    derivative = np.zeros_like(weights)
-    derivative[ACTIONS.index(A)] = S
-    self.weights = weights + LEARNING_RATE * diff * derivative
+    # compute initial q_tau
+    q_tau = evaluate_q(S_tau, A_tau, self.weights)
+    
+    # computer gradient of initial q_tau
+    gradient_q_tau = np.zeros_like(self.weights)
+    gradient_q_tau[ACTIONS.index(A_tau)] = S_tau
+    
+    # compute update target with true rewards
+    G = 0
+    for i in np.arange(n):
+        if tau + i >= len(self.transition_history):
+            break
+        G += np.power(DISCOUNT_FACTOR, i) * self.transition_history[tau+i][3]
+    
+    # add current reward estimate to the update target
+    if tau + n < len(self.transition_history):
+        S_tau_plus_n, A_tau_plus_n, _, _ = self.transition_history[tau+n]
+        G += np.power(DISCOUNT_FACTOR, n) * evaluate_q(S_tau_plus_n, A_tau_plus_n, self.weights)
+        
+    self.weights = self.weights + LEARNING_RATE * (G - q_tau) * gradient_q_tau
 
 # ------------------------------------------------------------------------------
 # history ----------------------------------------------------------------------
