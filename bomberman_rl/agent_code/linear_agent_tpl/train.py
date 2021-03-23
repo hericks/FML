@@ -16,6 +16,16 @@ from datetime import datetime
 LEARNING_RATE = 0.0001
 DISCOUNT_FACTOR = 0.995
 
+TRAIN_POLICY_TYPE = ['EPSILON_GREEDY', 'SOFTMAX']
+
+# Greedy settings
+EPSILON_TRAIN_VALUES = [0.25, 0.1]
+EPSILON_TRAIN_BREAKS = [0, 150]
+
+# Softmax settings
+TEMPERATURE_TRAIN_VALUES = [0.25, 0.1]
+TEMPERATURE_TRAIN_BREAKS = [0, 150]
+
 # History settings
 AGENT_NAME = "linear_agent_tpl"
 
