@@ -19,7 +19,7 @@ STDOUT_LOGLEVEL = logging.DEBUG
 # weights: np.array (NUM_ACTIONS, NUM_FEATURES)
 
 # 0 <= NUM_LOOK_AROUND <= 15
-NUM_LOOK_AROUND = 5
+NUM_LOOK_AROUND = 4
 NUM_FEATURES = 2*(2*NUM_LOOK_AROUND+1)*(2*NUM_LOOK_AROUND+1) + 4
 
 def setup(self):
@@ -86,7 +86,7 @@ def act(self, game_state: dict) -> str:
             epsilon_train = np.interp(game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES)
             action_index = epsilon_greedy(q_values, epsilon_train)
         elif TRAIN_POLICY_TYPE == 'SOFTMAX':
-            temperature_train = np.interp(game_state['round'], INVERSE_TEMPERATURE_TRAIN_BREAKS, 1/INVERSE_TEMPERATURE_TRAIN_VALUES)
+            temperature_train = np.interp(game_state['round'], INVERSE_TEMPERATURE_TRAIN_BREAKS, 1/np.array(INVERSE_TEMPERATURE_TRAIN_VALUES))
             action_index = softmax(q_values, temperature_train)
         else:
             raise NotImplementedError(f"The policy type '{TRAIN_POLICY_TYPE}' is not implemented.")
@@ -99,27 +99,6 @@ def act(self, game_state: dict) -> str:
             raise NotImplementedError(f"The policy type '{PLAY_POLICY_TYPE}' is not implemented.")
     
     return action_map(ACTIONS[action_index])
-  
-    
-    
-    if (self.train and random.random() < epsilon_train) or (not self.train and random.random() < EPSILON_PLAY):
-        # self.logger.debug("Choosing action purely at random.")
-        return np.random.choice(ACTIONS, p=[.225, .225, .225, .225, .1]) 
-    
-    
-    if not self.train:
-        feature_dict = state_to_features(game_state, True)
-        # self.logger.debug(f"Wall map: \n{feature_dict['wall_map']}")
-        # self.logger.debug(f"Coin map: \n{feature_dict['coin_map']}")
-        # self.logger.debug(f"Coins in quartal desc: {feature_dict['coins_in_quartal_description']}")
-        # self.logger.debug(f"Coins in quartal: {feature_dict['coins_in_quartal']}")
-        # self.logger.debug(f"Coin indicator: {feature_dict['coin_indicator']}")
-        # self.logger.debug(f"Actions: {ACTIONS}")
-        # self.logger.debug(f"Q-Values: {q_values}")
-        # self.logger.debug(f"Choosing action {ACTIONS[np.argmax(q_values)]}.")
-        # self.logger.debug(f"Real-Actions: {[action_map(a) for a in ACTIONS]}")
-        # self.logger.debug(f"{game_state['step']}")
-    
     
 def normalize_state(game_state):
     """
@@ -179,37 +158,26 @@ def normalize_state(game_state):
         game_state['others'] = [(name, score, canPlaceBomb, transpose_tuple(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         transposed_board = True
 
+    def transposed_action(a):
+        mapping = {'RIGHT': 'DOWN', 'DOWN': 'RIGHT', 'LEFT': 'UP', 'UP': 'LEFT', 'WAIT': 'WAIT', 'BOMB': 'BOMB'}
+        return mapping[a]
+    
+    def flipped_x_action(a):
+        return 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a) 
+    def flipped_y_action(a):
+        return 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
+    
     def action_map(a):
-        if transposed_board:
-            if a == 'RIGHT':
-                a = 'DOWN'
-            elif a == 'DOWN':
-                a = 'RIGHT'
-            elif a == 'LEFT':
-                a = 'UP'
-            elif a == 'UP':
-                a = 'LEFT'
-        if flipped_x:
-            a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
-        if flipped_y:
-            a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
+        a = transposed_action(a) if transposed_board else a
+        a = flipped_x_action(a) if flipped_x else a
+        a = flipped_y_action(a) if flipped_y else a
         return a
         
     def reverse_action_map(a):
-        if flipped_x:
-            a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
-        if flipped_y:
-            a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
-        if transposed_board:
-            if a == 'RIGHT':
-                a = 'DOWN'
-            elif a == 'DOWN':
-                a = 'RIGHT'
-            elif a == 'LEFT':
-                a = 'UP'
-            elif a == 'UP':
-                a = 'LEFT'
-        return a
+        a = flipped_x_action(a) if flipped_x else a
+        a = flipped_y_action(a) if flipped_y else a
+        a = transposed_action(a) if transposed_board else a
+        return a 
         
     return action_map, reverse_action_map
 
