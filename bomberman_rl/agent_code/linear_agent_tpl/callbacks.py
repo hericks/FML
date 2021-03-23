@@ -15,12 +15,11 @@ from .settings_play import *
 # Valid actions
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-STDOUT_LOGLEVEL = logging.DEBUG
-# weights: np.array (NUM_ACTIONS, NUM_FEATURES)
-
-# 0 <= NUM_LOOK_AROUND <= 15
+# Feature settings
 NUM_LOOK_AROUND = 4
-NUM_FEATURES = 2*(2*NUM_LOOK_AROUND+1)*(2*NUM_LOOK_AROUND+1) + 4
+
+# Settings regarding the logging process
+STDOUT_LOGLEVEL = logging.DEBUG
 
 def setup(self):
     """
@@ -39,7 +38,7 @@ def setup(self):
         
     if self.train or not os.path.isfile("weights.pt"):
         self.logger.info("Setting up model from scratch.")
-        self.weights = np.zeros((len(ACTIONS), NUM_FEATURES))
+        self.weights = np.zeros((NUM_ACTIONS, get_num_features()))
     else:
         self.logger.info("Loading model from saved state.")
         with open("weights.pt", "rb") as file:
@@ -47,7 +46,6 @@ def setup(self):
             
 def evaluate_q(features, action, weights):
     return np.dot(weights, features)[ACTIONS.index(action)]
-    
 
 # ------------------------------------------------------------------------------
 # policy-manipulators ----------------------------------------------------------
@@ -71,10 +69,7 @@ def act(self, game_state: dict) -> str:
     When not in training mode, the maximum execution time for this method is 0.5s.
 
     :param self: The same object that is passed to all of your callbacks.
-    :param game_state: The dictionary that describes everything on the board.
-    :return: The action to take as a string.
-    """
-    
+    :param game_state: The dictionary that describes everything on the board. :return: The action to take as a string. """ 
     action_map, _ = normalize_state(game_state)
     features = state_to_features(game_state)
     q_values = np.dot(self.weights, features)
@@ -108,7 +103,6 @@ def normalize_state(game_state):
     reverse_action_map: function to map action in input_state to action in normalized state.
     
     """
-   
     if game_state == None:
         return lambda a: a, lambda a: a
     
@@ -181,6 +175,20 @@ def normalize_state(game_state):
         
     return action_map, reverse_action_map
 
+def get_num_features():
+    dummy_state = {
+      'round': 0,
+      'step': 0,
+      'field': np.zeros((17, 17)),
+      'bombs': [],
+      'explosion_map': np.zeros((17, 17)),
+      'coins': [],
+      'self': ("dummy", 0, True, (1, 1)),
+      'others': []
+    }
+    
+    return state_to_features(dummy_state).shape[0]
+
 def state_to_features(game_state: dict, readable = False) -> np.array:
     """
     Converts the game state to the input of your model, i.e.
@@ -236,4 +244,3 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
         }
     
     return np.append(np.stack(channels).reshape(-1), max_coin_quartal)
-
