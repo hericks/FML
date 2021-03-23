@@ -3,41 +3,11 @@ import pickle
 import random
 import numpy as np
 from collections import namedtuple, deque
+from datetime import datetime
 from typing import List
 
-import events as e
 from .callbacks import state_to_features, evaluate_q, ACTIONS, AGENT_NAME, normalize_state
-from .callbacks import EPSILON_TRAIN_VALUES, EPSILON_TRAIN_BREAKS
-
-import matplotlib.pyplot as plt
-from datetime import datetime
-
-# Hyper parameters
-LEARNING_RATE = 0.0001
-DISCOUNT_FACTOR = 0.75
-
-# --- Policy settings
-TRAIN_POLICY_TYPE = ['EPSILON-GREEDY', 'SOFTMAX']
-
-# Settings for TRAIN_POLICY_TYPE == 'EPSILON-GREEDY'
-EPSILON_TRAIN_VALUES = [0.25, 0.1]
-EPSILON_TRAIN_BREAKS = [0, 150]
-
-# Settings for TRAIN_POLICY_TYPE == 'SOFTMAX'
-TEMPERATURE_TRAIN_VALUES = [0.25, 0.1]
-TEMPERATURE_TRAIN_BREAKS = [0, 150]
-
-# --- Learning settings
-UPDATE_ALGORITHM = 'N-STEP-SARSA'
-
-# Settings for UPDATE_ALGORITHM == 'SARSA'
-None
-
-# Settings for UPDATE_ALGORITHM == 'N-STEP-SARSA'
-NUM_SARSA_STEPS = 5
-
-# --- History settings
-AGENT_NAME = "linear_agent_tpl"
+from .settings_train import *
 
 # Further objects
 Transition = namedtuple('Transition',
@@ -131,15 +101,12 @@ def reward_from_events(self, events: List[str]) -> int:
     """
     Modify rewards to en/discourage certain behavior.
     """
-    game_rewards = {
-        e.COIN_COLLECTED: 1,
-    }
     reward_sum = 0
     for event in events:
-        if event in game_rewards:
-            reward_sum += game_rewards[event]
+        if event in EVENT_REWARDS:
+            reward_sum += EVENT_REWARDS[event]
 
-    return reward_sum - 0.01
+    return reward_sum + CONSTANT_REWARD
 
 # ------------------------------------------------------------------------------
 # learning algorithms ----------------------------------------------------------
