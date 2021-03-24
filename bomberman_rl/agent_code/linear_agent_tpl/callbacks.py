@@ -7,23 +7,19 @@ import numpy as np
 import logging
 import sys
 
+import scipy.special
 
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
-NUM_ACTIONS = len(ACTIONS)
+from .settings_train import *
+from .settings_play import *
 
-AGENT_NAME = "linear_agent_crate_first_try"
+# Valid actions
+ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
-# 0 <= NUM_LOOK_AROUND <= 15
-NUM_LOOK_AROUND = 1
+# Feature settings
+NUM_LOOK_AROUND = 4
 
-EPSILON_TRAIN_VALUES = [0.25, 0.1]
-EPSILON_TRAIN_BREAKS = [0, 150]
-
-EPSILON_PLAY = 0.35
-
+# Settings regarding the logging process
 STDOUT_LOGLEVEL = logging.DEBUG
-
-# weights: np.array (NUM_ACTIONS, NUM_FEATURES)
 
 def setup(self):
     """
@@ -33,7 +29,6 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
-    
     if STDOUT_LOGLEVEL != None:
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(STDOUT_LOGLEVEL)
@@ -42,8 +37,8 @@ def setup(self):
         self.logger.addHandler(handler)
         
     if self.train or not os.path.isfile("weights.pt"):
-        self.logger.info("Setting up model from scratch.")
-        self.weights = np.zeros((NUM_ACTIONS, get_num_features()))
+        self.logger.info(f"Setting up model from scratch (linear model with {get_num_features()} features).")
+        self.weights = np.zeros((len(ACTIONS), get_num_features()))
     else:
         self.logger.info("Loading model from saved state.")
         with open("weights.pt", "rb") as file:
@@ -51,7 +46,22 @@ def setup(self):
             
 def evaluate_q(features, action, weights):
     return np.dot(weights, features)[ACTIONS.index(action)]
-    
+
+# ------------------------------------------------------------------------------
+# policy-manipulators ----------------------------------------------------------
+# ------------------------------------------------------------------------------
+
+def epsilon_greedy(q_values, epsilon):
+    if random.random() < epsilon:
+      return np.random.choice(len(q_values))
+    else:
+      return np.argmax(q_values)
+  
+def softmax(q_values, temperature):
+    # naive implementation does not handle inf's in the numerator
+    # prob = np.exp(q_values/temperature) / np.sum(np.exp(q_values/temperature))
+    prob = scipy.special.softmax(q_values / temperature)
+    return np.random.choice(len(q_values), p = prob)
     
 def act(self, game_state: dict) -> str:
     """
@@ -59,28 +69,31 @@ def act(self, game_state: dict) -> str:
     When not in training mode, the maximum execution time for this method is 0.5s.
 
     :param self: The same object that is passed to all of your callbacks.
-    :param game_state: The dictionary that describes everything on the board.
-    :return: The action to take as a string.
-    """
-    
-    epsilon_train = np.interp(game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES)
-    
-    if (self.train and random.random() < epsilon_train) or (not self.train and random.random() < EPSILON_PLAY):
-        # self.logger.debug("Choosing action purely at random.")
-        return np.random.choice(ACTIONS, p=[.2, .2, .2, .2, .1, .1]) 
-    
+    :param game_state: The dictionary that describes everything on the board. :return: The action to take as a string. """ 
     action_map, _ = normalize_state(game_state)
     features = state_to_features(game_state)
     q_values = np.dot(self.weights, features)
     
-    if self.train:
-      import train
-      if TRAIN_POLICY_TYPE  == 'EPSILON_GREEDY':
-      elif TRAIN_POLICY_TYPE == 'SOFTMAX':
-    else:
-  
+    action_index = None
     
-    return action_map(ACTIONS[np.argmax(q_values)])
+    if self.train:
+        if TRAIN_POLICY_TYPE == 'EPSILON-GREEDY':
+            epsilon_train = np.interp(game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES)
+            action_index = epsilon_greedy(q_values, epsilon_train)
+        elif TRAIN_POLICY_TYPE == 'SOFTMAX':
+            temperature_train = np.interp(game_state['round'], INVERSE_TEMPERATURE_TRAIN_BREAKS, 1/np.array(INVERSE_TEMPERATURE_TRAIN_VALUES))
+            action_index = softmax(q_values, temperature_train)
+        else:
+            raise NotImplementedError(f"The policy type '{TRAIN_POLICY_TYPE}' is not implemented.")
+    else:
+        if PLAY_POLICY_TYPE == 'EPSILON-GREEDY':
+            action_index = epsilon_greedy(q_values, EPSILON_PLAY)
+        elif PLAY_POLICY_TYPE == 'SOFTMAX':
+            action_index = softmax(q_values, 1/INVERSE_TEMPERATURE_PLAY)
+        else:
+            raise NotImplementedError(f"The policy type '{PLAY_POLICY_TYPE}' is not implemented.")
+    
+    return action_map(ACTIONS[action_index])
     
 def normalize_state(game_state):
     """
@@ -90,7 +103,6 @@ def normalize_state(game_state):
     reverse_action_map: function to map action in input_state to action in normalized state.
     
     """
-   
     if game_state == None:
         return lambda a: a, lambda a: a
     
@@ -140,41 +152,29 @@ def normalize_state(game_state):
         game_state['others'] = [(name, score, canPlaceBomb, transpose_tuple(pos)) for name, score, canPlaceBomb, pos in game_state['others']]
         transposed_board = True
 
+    def transposed_action(a):
+        mapping = {'RIGHT': 'DOWN', 'DOWN': 'RIGHT', 'LEFT': 'UP', 'UP': 'LEFT', 'WAIT': 'WAIT', 'BOMB': 'BOMB'}
+        return mapping[a]
+    
+    def flipped_x_action(a):
+        return 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a) 
+    def flipped_y_action(a):
+        return 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
+    
     def action_map(a):
-        if transposed_board:
-            if a == 'RIGHT':
-                a = 'DOWN'
-            elif a == 'DOWN':
-                a = 'RIGHT'
-            elif a == 'LEFT':
-                a = 'UP'
-            elif a == 'UP':
-                a = 'LEFT'
-        if flipped_x:
-            a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
-        if flipped_y:
-            a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
+        a = transposed_action(a) if transposed_board else a
+        a = flipped_x_action(a) if flipped_x else a
+        a = flipped_y_action(a) if flipped_y else a
         return a
         
     def reverse_action_map(a):
-        if flipped_x:
-            a = 'RIGHT' if a == 'LEFT' else ('LEFT' if a == 'RIGHT' else a)
-        if flipped_y:
-            a = 'UP' if a == 'DOWN' else ('DOWN' if a == 'UP' else a)
-        if transposed_board:
-            if a == 'RIGHT':
-                a = 'DOWN'
-            elif a == 'DOWN':
-                a = 'RIGHT'
-            elif a == 'LEFT':
-                a = 'UP'
-            elif a == 'UP':
-                a = 'LEFT'
-        return a
+        a = flipped_x_action(a) if flipped_x else a
+        a = flipped_y_action(a) if flipped_y else a
+        a = transposed_action(a) if transposed_board else a
+        return a 
         
     return action_map, reverse_action_map
-    
-    
+
 def get_num_features():
     dummy_state = {
       'round': 0,
@@ -204,132 +204,43 @@ def state_to_features(game_state: dict, readable = False) -> np.array:
     self_x, self_y = game_state['self'][3]
     
     wall_map = np.zeros((31, 31)) 
-    crate_map = np.zeros((31, 31))
     field = game_state['field'] 
     for x in np.arange(17):
         for y in np.arange(17):
+            if (field[x, y] != -1):
+                continue 
+            
             x_rel, y_rel = x - self_x, y - self_y
-            if (field[x, y] == -1):
-              wall_map[15 + y_rel, 15 + x_rel] = 1
-            if (field[x, y] != 1):
-              crate_map[15 + y_rel, 15 + x_rel] = 1
+            wall_map[15 + y_rel, 15 + x_rel] = 1
             
     coin_map = np.zeros((31, 31)) 
     coins = game_state['coins']
     for x, y in coins:
         x_rel, y_rel = x - self_x, y - self_y
         coin_map[15 + y_rel, 15 + x_rel] = 1
-   
-    # stack maps     
+        
+    coins_in_quartal = [
+      np.sum(coin_map[0:16,0:16]),
+      np.sum(coin_map[0:16,16:32]),
+      np.sum(coin_map[16:32,0:16]),
+      np.sum(coin_map[16:32,16:32])]
+    
     index_min = 15 - NUM_LOOK_AROUND
     index_max = 16 + NUM_LOOK_AROUND
-    
-    wall_map = wall_map[index_min:index_max,index_min:index_max]
-    crate_map = crate_map[index_min:index_max,index_min:index_max]
-    
-    channels = []
-    channels.append(wall_map)
-    # channels.append(coin_map[index_min:index_max,index_min:index_max])
-    channels.append(crate_map)
+    channels = [
+      wall_map[index_min:index_max,index_min:index_max],
+      coin_map[index_min:index_max,index_min:index_max]]
 
-    # extra features
-    bombs = game_state['bombs']
-    safe_death_features = get_safe_death_features((self_x, self_y), field, bombs)
-   
-    features = np.stack(channels).reshape(-1)
-    features = np.append(features, game_state['self'][2])
-    features = np.append(features, is_bomb_suicide((self_x, self_y), field))
-    features = np.append(features, safe_death_features)
-   
+    max_coin_quartal = np.zeros(4) 
+    max_coin_quartal[np.argmax(coins_in_quartal)] = 1
+    
     if readable:
-      return {
-        'wall_map': wall_map,
-        'crate_map': crate_map,
-        'can_place_bomb': game_state['self'][2],
-        'is_bomb_suicide': is_bomb_suicide((self_x, self_y), field),
-        'safe_death_features': safe_death_features,
-        'raw_features': features
-      }
+        return {
+            "wall_map": channels[0],
+            "coin_map": channels[1],
+            "coins_in_quartal_description": ['OL', 'OR', 'UL', 'UR'],
+            "coins_in_quartal": coins_in_quartal,
+            "coin_indicator": max_coin_quartal
+        }
     
-    return features
-
-def get_unsafe_tiles(field, bombs):
-  unsafe_positions = []
-  for bomb_pos, _ in bombs:
-    unsafe_positions.append(bomb_pos)
-    
-    for x_offset in range(1, 4):
-      pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-      if pos[0] > 16 or field[pos] == -1:
-        break
-      unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-      
-    for x_offset in range(-1, -4, -1):
-      pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-      if pos[0] < 0 or field[pos] == -1:
-        break
-      unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-      
-    for y_offset in range(1, 4):
-      pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-      if pos[0] > 16 or field[pos] == -1:
-        break
-      unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-      
-    for y_offset in range(-1, -4, -1):
-      pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-      if pos[0] < 0 or field[pos] == -1:
-        break
-      unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-   
-  return unsafe_positions
-
-def get_reachable_tiles(pos, num_steps, field):
-  if num_steps == 0:
-    return [pos]
-  elif num_steps == 1:
-    ret = [pos]
-    pos_x, pos_y = pos
- 
-    for pos_update in [(pos_x + 1, pos_y), (pos_x - 1, pos_y), (pos_x, pos_y + 1), (pos_x, pos_y - 1)]:
-      if 0 <= pos_update[0] <= 16 and 0 <= pos_update[1] <= 16 and field[pos_update] == 0:
-        ret.append(pos_update)
-    
-    return ret
-  else:
-    candidates = get_reachable_tiles(pos, num_steps - 1, field)
-    ret = []
-    for pos in candidates:
-      ret.extend(x for x in get_reachable_tiles(pos, 1, field) if x not in ret)
-    return ret
-    
-def get_reachable_safe_tiles(pos, field, bombs, look_ahead = True):
-  if len(bombs) == 0:
-    raise ValueError("No bombs placed.")
- 
-  timer =  bombs[0][1] if look_ahead else bombs[0][1] + 1
-  reachable_tiles = set(get_reachable_tiles(pos, timer, field))
-  unsafe_tiles = set(get_unsafe_tiles(field, bombs))
-  
-  return [pos for pos in reachable_tiles if pos not in unsafe_tiles] 
-  
-def is_safe_death(pos, field, bombs, look_ahead = True):
-  if len(bombs) == 0:
-    return False
-    
-  return len(get_reachable_safe_tiles(pos, field, bombs, look_ahead)) == 0
-  
-def get_safe_death_features(pos, field, bombs):
-  if len(bombs) == 0:
-    return np.array([0, 0, 0, 0, 0])
- 
-  ret = np.array([], dtype = np.int32) 
-  for pos_update in [(pos[0], pos[1] - 1), (pos[0], pos[1] + 1), (pos[0] + 1, pos[1]), (pos[0] - 1, pos[1]), pos]:
-    if field[pos_update] == 0:
-      ret = np.append(ret, 1 if is_safe_death(pos_update, field, bombs) else 0)
-    else:
-      ret = np.append(ret, 1 if is_safe_death(pos, field, bombs) else 0)
-  return ret
-  
-def is_bomb_suicide(pos, field):
-  return is_safe_death(pos, field, [((pos), 3)], look_ahead = False)
+    return np.append(np.stack(channels).reshape(-1), max_coin_quartal)
