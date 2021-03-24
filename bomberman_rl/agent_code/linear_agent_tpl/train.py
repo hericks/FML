@@ -15,7 +15,6 @@ Transition = namedtuple('Transition',
 
 def setup_training(self):
     self.transition_history = []
-    self.transition_history_complete = False
   
     # setup everything related to history / monitoring
     setup_history(self)
@@ -78,7 +77,7 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     # initialize transition object and append to transition history
     # note that we have to rely on the transition history for the previous state
     transition = Transition(
-        self.transition_history[-1][3],
+        self.transition_history[-1][2],
         last_action,
         state_to_features(last_game_state),
         reward_from_events(self, events)
@@ -91,7 +90,6 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     
     # reset transition history
     self.transition_history = []
-    self.transition_history_complete = False
     
     # store the model
     with open("weights.pt", "wb") as file:
