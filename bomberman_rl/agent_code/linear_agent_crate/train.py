@@ -28,18 +28,18 @@ def setup_training(self):
     self.lastTransition = None
     
     self.history = dict()
-    self.history['numCoinsCollected'] = deque()
-    self.history['numInvalidActions'] = deque()
-    self.history['roundLength'] = deque()
+    self.history['num_coins_collected'] = deque()
+    self.history['num_invalid_actions'] = deque()
+    self.history['round_length'] = deque()
     self.history['epsilon'] = deque()
-    self.history['numCratesDestroyed'] = deque()
+    self.history['num_crates_destroyed'] = deque()
    
     self.historyFolder = f"histories/{AGENT_NAME}"
     self.historyFilePath = datetime.now().strftime(f"{self.historyFolder}/%d_%m_%Y_%H_%M_%S_%f.pt")
     
-    self.numInvalidActions = 0
-    self.numCoinsCollected = 0
-    self.numCratesDestroyed = 0
+    self.num_invalid_actions = 0
+    self.num_coins_collected = 0
+    self.num_crates_destroyed = 0
     self.numBombsDropped = 0
     self.cumulativeRewards = 0
     
@@ -90,17 +90,17 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     
     # logging
     if e.INVALID_ACTION in events:
-      self.numInvalidActions += 1
+      self.num_invalid_actions += 1
         
     if e.COIN_COLLECTED in events:
-      self.numCoinsCollected += 1
+      self.num_coins_collected += 1
       
     if e.BOMB_DROPPED in events:
       self.numBombsDropped += 1
      
     for event in events:
       if event == e.CRATE_DESTROYED:
-        self.numCratesDestroyed += 1
+        self.num_crates_destroyed += 1
         
     self.cumulativeRewards += R_new
         
@@ -131,14 +131,14 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     
     # logging
     if e.INVALID_ACTION in events:
-      self.numInvalidActions += 1
+      self.num_invalid_actions += 1
         
     if e.COIN_COLLECTED in events:
-      self.numCoinsCollected += 1
+      self.num_coins_collected += 1
      
     for event in events:
       if event == e.CRATE_DESTROYED:
-        self.numCratesDestroyed += 1
+        self.num_crates_destroyed += 1
         
     if e.BOMB_DROPPED in events:
       self.numBombsDropped += 1
@@ -151,17 +151,17 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
     perform_semi_gradient_sarsa_update(self, S, A, R, None, None)
 
     # update history
-    self.history['numInvalidActions'].append(self.numInvalidActions)
-    self.history['numCoinsCollected'].append(self.numCoinsCollected)
-    self.history['roundLength'].append(last_game_state['step'])
+    self.history['num_invalid_actions'].append(self.num_invalid_actions)
+    self.history['num_coins_collected'].append(self.num_coins_collected)
+    self.history['round_length'].append(last_game_state['step'])
     self.history['epsilon'].append(np.interp(last_game_state['round'], EPSILON_TRAIN_BREAKS, EPSILON_TRAIN_VALUES))
-    self.history['numCratesDestroyed'].append(self.numCratesDestroyed)
+    self.history['num_crates_destroyed'].append(self.num_crates_destroyed)
     
     # logging 
     self.logger.info(f'cumulativeRewards: {self.cumulativeRewards}')
-    self.logger.info(f'{self.numInvalidActions} invalid moves were played.')
-    self.logger.info(f'{self.numCoinsCollected} coins were collected.')
-    self.logger.info(f'{self.numCratesDestroyed} crates were destroyed.')
+    self.logger.info(f'{self.num_invalid_actions} invalid moves were played.')
+    self.logger.info(f'{self.num_coins_collected} coins were collected.')
+    self.logger.info(f'{self.num_crates_destroyed} crates were destroyed.')
     self.logger.info(f'{self.numBombsDropped} bombs were dropped.')
     self.logger.info(f'The game went for {last_game_state["step"]} steps.')
     
@@ -178,9 +178,9 @@ def end_of_round(self, last_game_state: dict, last_action: str, events: List[str
       
     # perform reset 
     self.lastTransition = None
-    self.numInvalidActions = 0
-    self.numCoinsCollected = 0
-    self.numCratesDestroyed = 0
+    self.num_invalid_actions = 0
+    self.num_coins_collected = 0
+    self.num_crates_destroyed = 0
     self.numBombsDropped = 0
     self.cumulativeRewards = 0
 
