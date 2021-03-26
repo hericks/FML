@@ -1,3 +1,5 @@
+import numpy as np
+
 """
 --------------------------------------------------------------------------------
 functions for state_to_features ------------------------------------------------
@@ -23,63 +25,28 @@ def get_free_tiles(field):
     return free_tiles
 
 
-def get_coin_features(free_tiles, pos, coins, offset):
-    """
-
-    :param free_tiles:
-    :param pos:
-    :param coins:
-    :param offset:
-    :return:
-    """
-
-    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, offset)
-    action_to_next_coin_features = np.array([0, 0, 0, 0])
-    if nearest_coin_path is not None and len(nearest_coin_path) > 1:
-        next_pos = nearest_coin_path[1]
-        # UP
-        action_to_next_coin_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
-        # DOWN
-        action_to_next_coin_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
-        # RIGHT
-        action_to_next_coin_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
-        # LEFT
-        action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
-
-    return action_to_next_coin_features
+def get_neighbors(pos):
+    # TOP / BOTTOM / RIGHT / LEFT NEIGHBOR
+    return [(pos[0], pos[1] - 1), (pos[0], pos[1] + 1), (pos[0] + 1, pos[1]), (pos[0] - 1, pos[1])]
 
 
-def get_crate_features(field, free_tiles, pos, offset):
-    """
+def get_crates_list(field):
+    return [(x, y) for x in range(17) for y in range(17) if field[x, y] == 1]
 
-    :param field:
-    :param free_tiles:
-    :param pos:
-    :param offset:
-    :return:
-    """
 
-    crates = [(x, y) for x in range(17) for y in range(17) if field[x, y] == 1]
-    nearest_crate_path = get_nearest_coin_path(free_tiles, pos, crates, offset)
-    action_to_next_crate_features = np.array([0, 0, 0, 0])
+def get_first_step_to_nearest_object_features(free_tiles, pos, objects, offset):
+    return get_first_step_on_path_features(get_nearest_object_path(free_tiles, pos, objects, offset))
 
-    if nearest_crate_path is not None and len(nearest_crate_path) > 1:
-        next_pos = nearest_crate_path[1]
-        # UP
-        action_to_next_crate_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
-        # DOWN
-        action_to_next_crate_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
-        # RIGHT
-        action_to_next_crate_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
-        # LEFT
-        action_to_next_crate_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
 
-    self_x, self_y = pos
-    neighbors = [(self_x + 1, self_y), (self_x - 1, self_y), (self_x, self_y + 1), (self_x, self_y - 1)]
-    is_next_to_crate = np.array(any([field[neighbor] == 1 for neighbor in neighbors]), dtype=np.int32)
-    action_to_next_crate_features = np.append(action_to_next_crate_features, is_next_to_crate)
-
-    return action_to_next_crate_features
+def get_first_step_on_path_features(path):
+    features = np.array([0, 0, 0, 0])
+    if path is not None and len(path) > 1:
+        pos = path[0]
+        next_pos = path[1]
+        for neighbor_index, neighbor_pos in enumerate(get_neighbors(pos)):
+            if next_pos == neighbor_pos:
+                features[neighbor_index] = 1
+    return features
 
 
 """
@@ -110,57 +77,38 @@ def get_relative_maps(game_state):
     """
 
     # get attributes from game state
-    pos = game_state['self'][3]
+    self_x, self_y = game_state['self'][3]
     field = game_state['field']
     coins = game_state['coins']
     bombs = game_state['bombs']
-    self_x, self_y = pos
 
-    # define all the relative maps that will be added to dictionary
-    wall_map = np.zeros((31, 31))
-    crate_map = np.zeros((31, 31))
-    coin_map = np.zeros((31, 31))
-    bomb_map_0 = np.zeros((31, 31))
-    bomb_map_1 = np.zeros((31, 31))
-    bomb_map_2 = np.zeros((31, 31))
-    bomb_map_3 = np.zeros((31, 31))
-    bomb_map_4 = np.zeros((31, 31))
+    # create the dictionary of relative maps
+    dict_keys = ['wall_map', 'crate_map', 'coin_map',
+                 'bomb_map_0', 'bomb_map_1', 'bomb_map_2', 'bomb_map_3', 'bomb_map_4']
 
-    # calculate wall map, crate map and the bomb maps
-    for x in range(len(field)):
-        for y in range(len(field[x])):
+    relative_maps = dict()
+    for key in dict_keys:
+        relative_maps[key] = np.zeros((31, 31))
+
+    # compute wall- and crate-maps
+    for x in range(17):
+        for y in range(17):
             x_rel, y_rel = x - self_x, y - self_y
             if field[x, y] == -1:
-                wall_map[15 + y_rel, 15 + x_rel] = 1
-            if field[x, y] == 1:
-                crate_map[15 + y_rel, 15 + x_rel] = 1
-            for pos, time in bombs:
-                if time == 0:
-                    bomb_map_0[15 + y_rel, 15 + x_rel] = 1
-                if time == 1:
-                    bomb_map_1[15 + y_rel, 15 + x_rel] = 1
-                if time == 2:
-                    bomb_map_2[15 + y_rel, 15 + x_rel] = 1
-                if time == 3:
-                    bomb_map_3[15 + y_rel, 15 + x_rel] = 1
-                if time == 4:
-                    bomb_map_4[15 + y_rel, 15 + x_rel] = 1
+                relative_maps['wall_map'][15 + y_rel, 15 + x_rel] = 1
+            elif field[x, y] == 1:
+                relative_maps['crate_map'][15 + y_rel, 15 + x_rel] = 1
 
-    # calculate coin map
+    # compute bomb-maps
+    for bomb_pos, time in bombs:
+        x, y = bomb_pos
+        x_rel, y_rel = x - self_x, y - self_y
+        relative_maps[f'bom_map_{time}'][15 + y_rel, 15 + x_rel] = 1
+
+    # compute coin-map
     for x, y in coins:
         x_rel, y_rel = x - self_x, y - self_y
-        coin_map[15 + y_rel, 15 + x_rel] = 1
-
-    relative_maps = {
-        'wall_map': wall_map,
-        'crate_map': crate_map,
-        'coin_map': coin_map,
-        'bomb_map_0': bomb_map_0,
-        'bomb_map_1': bomb_map_1,
-        'bomb_map_2': bomb_map_2,
-        'bomb_map_3': bomb_map_3,
-        'bomb_map_4': bomb_map_4
-    }
+        relative_maps['coin_map'][15 + y_rel, 15 + x_rel] = 1
 
     return relative_maps
 
@@ -172,12 +120,9 @@ def restrict_relative_map(relative_map, radius):
     :param radius: an integer value with the look around og the agent
     :return: a 2D numpy array of the reduced array
     """
-
     index_min = 15 - radius
     index_max = 16 + radius
-    relative_map = relative_map[index_min:index_max, index_min:index_max]
-
-    return relative_map
+    return relative_map[index_min:index_max, index_min:index_max]
 
 
 """
