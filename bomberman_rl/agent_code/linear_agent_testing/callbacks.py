@@ -226,30 +226,8 @@ def state_to_features(game_state: dict) -> np.array:
             if field[i, j] == 0:
                 free_tiles[i, j] = 1
 
-    wall_map = np.zeros((31, 31))
-    crate_map = np.zeros((31, 31))
-    for x in np.arange(17):
-        for y in np.arange(17):
-            x_rel, y_rel = x - self_x, y - self_y
-            if field[x, y] == -1:
-                wall_map[15 + y_rel, 15 + x_rel] = 1
-            if field[x, y] != 1:
-                crate_map[15 + y_rel, 15 + x_rel] = 1
-
-    # stack maps
-    index_min = 15 - NUM_LOOK_AROUND
-    index_max = 16 + NUM_LOOK_AROUND
-
-    wall_map = wall_map[index_min:index_max, index_min:index_max]
-    crate_map = crate_map[index_min:index_max, index_min:index_max]
-
-    channels = [wall_map, crate_map]
-
-    safe_death_features = get_safe_death_features((self_x, self_y), field, bombs)
-
     nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, 2)
     action_to_next_coin_features = np.array([0, 0, 0, 0])
-
     if nearest_coin_path is not None and len(nearest_coin_path) > 1:
         next_pos = nearest_coin_path[1]
         # UP
@@ -261,11 +239,38 @@ def state_to_features(game_state: dict) -> np.array:
         # LEFT
         action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
 
-    features = np.stack(channels).reshape(-1)
-    features = np.append(features, game_state['self'][2])
+    crates = [(x, y) for x in range(17) for y in range(17) if field[x, y] == 1]
+    nearest_crate_path = get_nearest_coin_path(free_tiles, pos, crates, 2)
+    action_to_next_crate_features = np.array([0, 0, 0, 0])
+
+    if nearest_crate_path is not None and len(nearest_crate_path) > 1:
+        next_pos = nearest_crate_path[1]
+        # UP
+        action_to_next_crate_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
+        # DOWN
+        action_to_next_crate_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
+        # RIGHT
+        action_to_next_crate_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
+        # LEFT
+        action_to_next_crate_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
+
+    neighbors = [(self_x + 1, self_y), (self_x - 1, self_y), (self_x, self_y + 1), (self_x, self_y - 1)]
+    is_next_to_crate = np.array(any([field[neighbor] == 1 for neighbor in neighbors]), dtype=np.int32)
+
+    features = np.array(game_state['self'][2], dtype=np.int32)
     features = np.append(features, is_bomb_suicide((self_x, self_y), field))
-    features = np.append(features, safe_death_features)
-    np.append(features, action_to_next_coin_features)
+    features = np.append(features, get_safe_death_features((self_x, self_y), field, bombs))
+    features = np.append(features, action_to_next_coin_features)
+    features = np.append(features, action_to_next_crate_features)
+    features = np.append(features, is_next_to_crate)
+
+    # print(f"Current position: {pos}")
+    # print(f"Can place bomb: {np.array(game_state['self'][2], dtype=np.int32)}")
+    # print(f"Is bomb suicide: {is_bomb_suicide((self_x, self_y), field)}")
+    # print(f"Safe death features: {get_safe_death_features((self_x, self_y), field, bombs)}")
+    # print(f"Path to next coin: {action_to_next_coin_features}")
+    # print(f"Path to next crate: {action_to_next_crate_features}")
+    # print(f"Next to crate: {is_next_to_crate}")
 
     return features
 
@@ -283,7 +288,7 @@ def get_nearest_coin_path(field, pos, coins, offset=0):
     """
 
     min_path = None
-    min_path_val = 1000
+    min_path_val = np.infty
 
     if len(coins) == 0:
         return [pos]
@@ -341,6 +346,7 @@ def shortest_path(free_tiles, start, target):
     closed_nodes = []
 
     heapq.heappush(open_nodes, (start_node.f, start_node))
+    free_tiles[target] = True
 
     while len(open_nodes) > 0:
         current_node = heapq.heappop(open_nodes)[1]
@@ -360,8 +366,7 @@ def shortest_path(free_tiles, start, target):
         neighbors_pos = [(i, j) for (i, j) in [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)] if free_tiles[i, j]]
 
         for position in neighbors_pos:
-            node_position = (position[0], position[1])
-            new_node = Node(current_node, node_position)
+            new_node = Node(current_node, position)
             neighbors.append(new_node)
 
         for neighbor in neighbors:
@@ -381,6 +386,8 @@ def shortest_path(free_tiles, start, target):
                 if neighbor == open_node[1]:
                     open_node[1].f = min(neighbor.f, open_node[1].f)
                     break
+
+    return [start]
 
 
 def get_unsafe_tiles(field, bombs):

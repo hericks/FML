@@ -1,8 +1,8 @@
-import os
 import pickle
 import random
 
 import numpy as np
+import heapq
 
 import logging
 import sys
@@ -13,7 +13,7 @@ from .settings_train import *
 from .settings_play import *
 
 # Valid actions
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
+ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 # Feature settings
 NUM_LOOK_AROUND = 4
@@ -30,7 +30,7 @@ def setup(self):
 
     :param self: This object is passed to all callbacks and you can set arbitrary values.
     """
-    if STDOUT_LOGLEVEL != None:
+    if STDOUT_LOGLEVEL is not None:
         handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(STDOUT_LOGLEVEL)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -74,12 +74,11 @@ def act(self, game_state: dict) -> str:
     When not in training mode, the maximum execution time for this method is 0.5s.
 
     :param self: The same object that is passed to all of your callbacks.
-    :param game_state: The dictionary that describes everything on the board. :return: The action to take as a string. """
+    :param game_state: The dictionary that describes everything on the board. :return: The action to take as a string.
+    """
     action_map, _ = normalize_state(game_state)
     features = state_to_features(game_state)
     q_values = np.dot(self.weights, features)
-
-    action_index = None
 
     if self.train:
         if TRAIN_POLICY_TYPE == 'EPSILON-GREEDY':
@@ -110,16 +109,16 @@ def normalize_state(game_state):
     reverse_action_map: function to map action in input_state to action in normalized state.
 
     """
-    if game_state == None:
+    if game_state is None:
         return lambda a: a, lambda a: a
 
     agent_x, agent_y = game_state['self'][3]
 
     def flip_tuple_x(t):
-        return (16 - t[0], t[1])
+        return 16 - t[0], t[1]
 
     def flip_tuple_y(t):
-        return (t[0], 16 - t[1])
+        return t[0], 16 - t[1]
 
     flipped_x = False
     if agent_x > 8:
@@ -127,9 +126,9 @@ def normalize_state(game_state):
         game_state['bombs'] = [(flip_tuple_x(pos), time) for pos, time in game_state['bombs']]
         game_state['explosion_map'] = np.flipud(game_state['explosion_map'])
         game_state['coins'] = [flip_tuple_x(coin) for coin in game_state['coins']]
-        name, score, canPlaceBomb, pos = game_state['self']
-        game_state['self'] = (name, score, canPlaceBomb, flip_tuple_x(pos))
-        game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_x(pos)) for name, score, canPlaceBomb, pos in
+        name, score, can_place_bomb, pos = game_state['self']
+        game_state['self'] = (name, score, can_place_bomb, flip_tuple_x(pos))
+        game_state['others'] = [(name, score, can_place_bomb, flip_tuple_x(pos)) for name, score, can_place_bomb, pos in
                                 game_state['others']]
         flipped_x = True
 
@@ -139,16 +138,16 @@ def normalize_state(game_state):
         game_state['bombs'] = [(flip_tuple_y(pos), time) for pos, time in game_state['bombs']]
         game_state['explosion_map'] = np.fliplr(game_state['explosion_map'])
         game_state['coins'] = [flip_tuple_y(coin) for coin in game_state['coins']]
-        name, score, canPlaceBomb, pos = game_state['self']
-        game_state['self'] = (name, score, canPlaceBomb, flip_tuple_y(pos))
-        game_state['others'] = [(name, score, canPlaceBomb, flip_tuple_y(pos)) for name, score, canPlaceBomb, pos in
+        name, score, can_place_bomb, pos = game_state['self']
+        game_state['self'] = (name, score, can_place_bomb, flip_tuple_y(pos))
+        game_state['others'] = [(name, score, can_place_bomb, flip_tuple_y(pos)) for name, score, can_place_bomb, pos in
                                 game_state['others']]
         flipped_y = True
 
     agent_x_update, agent_y_update = game_state['self'][3]
 
     def transpose_tuple(t):
-        return (t[1], t[0])
+        return t[1], t[0]
 
     transposed_board = False
     if agent_y_update > agent_x_update:
@@ -156,10 +155,10 @@ def normalize_state(game_state):
         game_state['bombs'] = [(transpose_tuple(pos), time) for pos, time in game_state['bombs']]
         game_state['explosion_map'] = np.transpose(game_state['explosion_map'])
         game_state['coins'] = [transpose_tuple(coin) for coin in game_state['coins']]
-        name, score, canPlaceBomb, pos = game_state['self']
-        game_state['self'] = (name, score, canPlaceBomb, transpose_tuple(pos))
-        game_state['others'] = [(name, score, canPlaceBomb, transpose_tuple(pos)) for name, score, canPlaceBomb, pos in
-                                game_state['others']]
+        name, score, can_place_bomb, pos = game_state['self']
+        game_state['self'] = (name, score, can_place_bomb, transpose_tuple(pos))
+        game_state['others'] = [(name, score, can_place_bomb, transpose_tuple(pos)) for name, score, can_place_bomb, pos
+                                in game_state['others']]
         transposed_board = True
 
     def transposed_action(a):
@@ -202,7 +201,7 @@ def get_num_features():
     return state_to_features(dummy_state).shape[0]
 
 
-def state_to_features(game_state: dict, readable=False) -> np.array:
+def state_to_features(game_state: dict) -> np.array:
     """
     Converts the game state to the input of your model, i.e.
     a feature vector.
@@ -217,19 +216,8 @@ def state_to_features(game_state: dict, readable=False) -> np.array:
     pos = game_state['self'][3]
     field = game_state['field']
     coins = game_state['coins']
-    
-    nearest_coin_path = get_nearest_coin_path(field, pos, coins)
-    action_to_next_coin_features = np.array([0, 0, 0, 0])
+    bombs = game_state['bombs']
 
-    if not nearest_coin_path is None and len(nearest_coin_path) > 1:
-        next_pos = nearest_coin_path[1]
-        # oben
-        action_to_next_coin_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
-        # unten
-        action_to_next_coin_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
-        # rechts
-        action_to_next_coin_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
-        # linkes
-        action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
+    features = np.array(game_state['self'][2], dtype=np.int32)
 
-    return action_to_next_coin_features
+    return features
