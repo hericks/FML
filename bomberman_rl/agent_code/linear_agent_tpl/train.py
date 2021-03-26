@@ -138,29 +138,34 @@ def perform_weight_update(self, terminal=False):
 def perform_eligibility_trace_sarsa_update(self, trace_decay, discount_factor, terminal=False):
     if len(self.transition_history) < 2:
         return
-    
+
     S, A, _, R = self.transition_history[-2]
-    
+
     def nonzero_indices(S, A):
-      return [(ACTIONS.index(A), i) for i in np.nonzero(S)[0].tolist()]
-    
+        return [(ACTIONS.index(A), i) for i in np.nonzero(S)[0].tolist()]
+
     delta = R
     for index in nonzero_indices(S, A):
         delta -= self.weights[index]
         self.eligibility_trace[index] = 1
-    
-    if terminal:
-        self.weights = self.weights + LEARNING_RATE * delta * self.eligibility_trace
-        return
-      
+
     S_new, A_new, _, _ = self.transition_history[-1]
-    
+
     for index in nonzero_indices(S_new, A_new):
-      delta += discount_factor * self.weights[index]
-    
+        delta += discount_factor * self.weights[index]
+
     self.weights = self.weights + LEARNING_RATE * delta * self.eligibility_trace
     self.eligibility_trace = discount_factor * trace_decay * self.eligibility_trace
-      
+
+    if terminal:
+        S, A, _, R = self.transition_history[-1]
+        delta = R
+        for index in nonzero_indices(S, A):
+            delta -= self.weights[index]
+            self.eligibility_trace[index] = 1
+        self.weights = self.weights + LEARNING_RATE * delta * self.eligibility_trace
+
+
 def perform_n_step_sarsa_weight_update(self, tau, n):
     if tau < 0:
         return
