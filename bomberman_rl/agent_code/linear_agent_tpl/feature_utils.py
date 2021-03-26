@@ -1,37 +1,12 @@
-def get_nearest_coin_path(field, pos, coins, offset=0):
-    """
-    This function finds the path that need the fewest steps from
-    the agents current_node position to the nearest coin
-    :param offset: an integer that gives a value that will be added to the size of the environment
-    around the agent where he is looking at coins
-    :param field: a 2D numpy array of the field (empty, crates, walls)
-    :param pos: a (x,y) tuple with the agents position
-    :param coins: a 2D numpy array of the coin map
-    :return: a list refers to the the path from the agent to the nearest coin
-    """
-
-    min_path = None
-    min_path_val = 1000
-
-    if len(coins) == 0:
-        return [pos]
-
-    best_dist = min(np.sum(np.abs(np.subtract(coins, pos)), axis=1))
-    near_coins = [coin for coin in coins if np.abs(coin[0] - pos[0]) + np.abs(coin[1] - pos[1]) <= best_dist + offset]
-
-    if len(near_coins) == 0:
-        return [pos]
-
-    for coin in near_coins:
-        path = shortest_path(field, pos, coin)
-        len_path = len(path)
-        if len_path < min_path_val:
-            min_path_val = len_path
-            min_path = path
-
-    return min_path
+"""
+--------------------------------------------------------------------------------
+shortest path features ---------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
 
 
+# For all shortest path features you need the Node class,
+# because the A* search algorithm that is used, works on them:
 class Node:
     """
     This class is needed to perform an A* search
@@ -51,6 +26,8 @@ class Node:
         return self.g < other.g
 
 
+# This algorithm is used to find the shortest path
+# It only works if the class Node is defined
 def shortest_path(free_tiles, start, target):
     """
     This is an A* search algorithm with heap queues to find the shortest path from start to target node
@@ -69,6 +46,7 @@ def shortest_path(free_tiles, start, target):
     closed_nodes = []
 
     heapq.heappush(open_nodes, (start_node.f, start_node))
+    free_tiles[target] = True
 
     while len(open_nodes) > 0:
         current_node = heapq.heappop(open_nodes)[1]
@@ -88,8 +66,7 @@ def shortest_path(free_tiles, start, target):
         neighbors_pos = [(i, j) for (i, j) in [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)] if free_tiles[i, j]]
 
         for position in neighbors_pos:
-            node_position = (position[0], position[1])
-            new_node = Node(current_node, node_position)
+            new_node = Node(current_node, position)
             neighbors.append(new_node)
 
         for neighbor in neighbors:
@@ -109,3 +86,49 @@ def shortest_path(free_tiles, start, target):
                 if neighbor == open_node[1]:
                     open_node[1].f = min(neighbor.f, open_node[1].f)
                     break
+
+    return [start]
+
+
+# This function returns the path to the nearest object in the objects list
+# This requires the implementation of the class Node and the shortest_path algorithm
+def get_nearest_object_path(free_tiles, pos, objects, offset=0):
+    """
+    This function finds the path that need the fewest steps from
+    the agents current_node position to the nearest object from the object list
+    :param free_tiles: a 2D numpy array of type bool, the entries that are True are positions the agent can walk along
+    :param pos: a (x,y) tuple with the agents position
+    :param objects: a list of positions of objects
+    :param offset: an integer that gives a value that will be added to the size of the environment
+    around the agent where he is looking at objects
+    :return: a list refers to the the path from the agent to the nearest object
+    """
+
+    min_path = None
+    min_path_val = np.infty
+
+    if len(objects) == 0:
+        return [pos]
+
+    best_dist = min(np.sum(np.abs(np.subtract(objects, pos)), axis=1))
+    near_objects = [elem for elem in objects if np.abs(elem[0] - pos[0]) + np.abs(elem[1] - pos[1]) <= best_dist +
+                    offset]
+
+    if len(near_objects) == 0:
+        return [pos]
+
+    for elem in near_objects:
+        path = shortest_path(free_tiles, pos, elem)
+        len_path = len(path)
+        if len_path < min_path_val:
+            min_path_val = len_path
+            min_path = path
+
+    return min_path
+
+
+"""
+--------------------------------------------------------------------------------
+escape death features ----------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
