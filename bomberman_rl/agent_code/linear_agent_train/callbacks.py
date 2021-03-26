@@ -218,7 +218,6 @@ def state_to_features(game_state: dict) -> np.array:
     field = game_state['field']
     coins = game_state['coins']
     bombs = game_state['bombs']
-    self_x, self_y = pos
 
     free_tiles = np.zeros(field.shape, dtype=bool)
     for i in range(len(free_tiles)):
@@ -226,29 +225,19 @@ def state_to_features(game_state: dict) -> np.array:
             if field[i, j] == 0:
                 free_tiles[i, j] = 1
 
-    wall_map = np.zeros((31, 31))
-    crate_map = np.zeros((31, 31))
-    for x in np.arange(17):
-        for y in np.arange(17):
-            x_rel, y_rel = x - self_x, y - self_y
-            if field[x, y] == -1:
-                wall_map[15 + y_rel, 15 + x_rel] = 1
-            if field[x, y] != 1:
-                crate_map[15 + y_rel, 15 + x_rel] = 1
+    crates = []
+    for i in range(len(field)):
+        for j in range(len(field[i])):
+            if field[i, j] == 1:
+                crates.append((i, j))
 
-    # stack maps
-    index_min = 15 - NUM_LOOK_AROUND
-    index_max = 16 + NUM_LOOK_AROUND
-
-    wall_map = wall_map[index_min:index_max, index_min:index_max]
-    crate_map = crate_map[index_min:index_max, index_min:index_max]
-
-    channels = [wall_map, crate_map]
-
-    safe_death_features = get_safe_death_features((self_x, self_y), field, bombs)
+    safe_death_features = get_safe_death_features(pos, field, bombs)
 
     nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, 2)
     action_to_next_coin_features = np.array([0, 0, 0, 0])
+
+    nearest_crate_path = get_nearest_crate_path(free_tiles, pos, crates)
+    action_to_next_crate_features = np.array([0, 0, 0, 0])
 
     if nearest_coin_path is not None and len(nearest_coin_path) > 1:
         next_pos = nearest_coin_path[1]
@@ -261,22 +250,33 @@ def state_to_features(game_state: dict) -> np.array:
         # LEFT
         action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
 
-    features = np.stack(channels).reshape(-1)
-    features = np.append(features, game_state['self'][2])
-    features = np.append(features, is_bomb_suicide((self_x, self_y), field))
+    if nearest_crate_path is not None and len(nearest_crate_path) > 1:
+        next_crate_pos = nearest_crate_path[1]
+        # UP
+        action_to_next_crate_features[0] = 1 if (pos[0], pos[1] - 1) == next_crate_pos else 0
+        # DOWN
+        action_to_next_crate_features[1] = 1 if (pos[0], pos[1] + 1) == next_crate_pos else 0
+        # RIGHT
+        action_to_next_crate_features[2] = 1 if (pos[0] + 1, pos[1]) == next_crate_pos else 0
+        # LEFT
+        action_to_next_crate_features[3] = 1 if (pos[0] - 1, pos[1]) == next_crate_pos else 0
+
+    features = np.array(game_state['self'][2])
+    features = np.append(features, is_bomb_suicide(pos, field))
     features = np.append(features, safe_death_features)
-    np.append(features, action_to_next_coin_features)
+    features = np.append(features, action_to_next_coin_features)
+    features = np.append(features, action_to_next_crate_features)
 
     return features
 
 
-def get_nearest_coin_path(field, pos, coins, offset=0):
+def get_nearest_coin_path(free_tiles, pos, coins, offset=0):
     """
     This function finds the path that need the fewest steps from
     the agents current_node position to the nearest coin
     :param offset: an integer that gives a value that will be added to the size of the environment
     around the agent where he is looking at coins
-    :param field: a 2D numpy array of the field (empty, crates, walls)
+    :param free_tiles: a 2D numpy array of the field (empty, crates, walls)
     :param pos: a (x,y) tuple with the agents position
     :param coins: a 2D numpy array of the coin map
     :return: a list refers to the the path from the agent to the nearest coin
@@ -295,7 +295,39 @@ def get_nearest_coin_path(field, pos, coins, offset=0):
         return [pos]
 
     for coin in near_coins:
-        path = shortest_path(field, pos, coin)
+        path = shortest_path(free_tiles, pos, coin)
+        len_path = len(path)
+        if len_path < min_path_val:
+            min_path_val = len_path
+            min_path = path
+
+    return min_path
+
+
+def get_nearest_crate_path(free_tiles, pos, crates):
+    """
+    This function finds the path that need the fewest steps from
+    the agents current_node position to the nearest crate
+    :param free_tiles: a 2D numpy array of the field (empty, crates, walls)
+    :param pos: a (x,y) tuple with the agents position
+    :param crates: a 2D numpy array of the crate map
+    :return: a list refers to the the path from the agent to the nearest coin
+    """
+
+    min_path = None
+    min_path_val = 1000
+
+    if len(crates) == 0:
+        return [pos]
+
+    best_dist = min(np.sum(np.abs(np.subtract(crates, pos)), axis=1))
+    near_crates = [crate for crate in crates if np.abs(crate[0] - pos[0]) + np.abs(crate[1] - pos[1]) <= best_dist]
+
+    if len(near_crates) == 0:
+        return [pos]
+
+    for crate in near_crates:
+        path = shortest_path(free_tiles, pos, crate)
         len_path = len(path)
         if len_path < min_path_val:
             min_path_val = len_path
@@ -381,6 +413,8 @@ def shortest_path(free_tiles, start, target):
                 if neighbor == open_node[1]:
                     open_node[1].f = min(neighbor.f, open_node[1].f)
                     break
+
+    return [start]
 
 
 def get_unsafe_tiles(field, bombs):
