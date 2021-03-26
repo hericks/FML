@@ -35,9 +35,10 @@ NUM_SARSA_STEPS = 1
 # Settings for UPDATE_ALGORITHM == 'SARSA(LAMBDA)'
 TRACE_DECAY = 0.9
 
-
 # --- Reward settings
 CONSTANT_REWARD = -0.1
+
+from .custom_event_utils import CRATE_DESTROYING_BOMB_DROPPED
 
 EVENT_REWARDS = {
     e.COIN_COLLECTED: 1
@@ -54,7 +55,7 @@ def valid_in_environ(key):
 def assign_settings_from_environ():
     global AGENT_NAME
     if valid_in_environ(k.AGENT_NAME_KEY):
-        AGENT_NAME = os.environ[k.AGENT_NAME_KEY] 
+        AGENT_NAME = os.environ[k.AGENT_NAME_KEY]
     
     global LEARNING_RATE
     if valid_in_environ(k.LEARNING_RATE_KEY):
