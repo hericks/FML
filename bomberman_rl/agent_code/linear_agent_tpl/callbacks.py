@@ -13,7 +13,7 @@ from .settings_train import *
 from .settings_play import *
 
 # Valid actions
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
+ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
 
 # Feature settings
 NUM_LOOK_AROUND = 4
@@ -216,6 +216,8 @@ def state_to_features(game_state: dict) -> np.array:
     pos = game_state['self'][3]
     field = game_state['field']
     coins = game_state['coins']
+    bombs = game_state['bombs']
+    self_x, self_y = pos
 
     free_tiles = np.zeros(field.shape, dtype=bool)
     for i in range(len(free_tiles)):
@@ -223,9 +225,8 @@ def state_to_features(game_state: dict) -> np.array:
             if field[i, j] == 0:
                 free_tiles[i, j] = 1
 
-    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins)
+    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, 2)
     action_to_next_coin_features = np.array([0, 0, 0, 0])
-
     if nearest_coin_path is not None and len(nearest_coin_path) > 1:
         next_pos = nearest_coin_path[1]
         # UP
@@ -237,117 +238,37 @@ def state_to_features(game_state: dict) -> np.array:
         # LEFT
         action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
 
-    return action_to_next_coin_features
+    crates = [(x, y) for x in range(17) for y in range(17) if field[x, y] == 1]
+    nearest_crate_path = get_nearest_coin_path(free_tiles, pos, crates, 2)
+    action_to_next_crate_features = np.array([0, 0, 0, 0])
 
+    if nearest_crate_path is not None and len(nearest_crate_path) > 1:
+        next_pos = nearest_crate_path[1]
+        # UP
+        action_to_next_crate_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
+        # DOWN
+        action_to_next_crate_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
+        # RIGHT
+        action_to_next_crate_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
+        # LEFT
+        action_to_next_crate_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
 
-def get_nearest_coin_path(field, pos, coins, offset=0):
-    """
-    This function finds the path that need the fewest steps from
-    the agents current_node position to the nearest coin
-    :param offset: an integer that gives a value that will be added to the size of the environment
-    around the agent where he is looking at coins
-    :param field: a 2D numpy array of the field (empty, crates, walls)
-    :param pos: a (x,y) tuple with the agents position
-    :param coins: a 2D numpy array of the coin map
-    :return: a list refers to the the path from the agent to the nearest coin
-    """
+    neighbors = [(self_x + 1, self_y), (self_x - 1, self_y), (self_x, self_y + 1), (self_x, self_y - 1)]
+    is_next_to_crate = np.array(any([field[neighbor] == 1 for neighbor in neighbors]), dtype=np.int32)
 
-    min_path = None
-    min_path_val = 1000
+    features = np.array(game_state['self'][2], dtype=np.int32)
+    features = np.append(features, is_bomb_suicide((self_x, self_y), field))
+    features = np.append(features, get_safe_death_features((self_x, self_y), field, bombs))
+    features = np.append(features, action_to_next_coin_features)
+    features = np.append(features, action_to_next_crate_features)
+    features = np.append(features, is_next_to_crate)
 
-    if len(coins) == 0:
-        return [pos]
+    # print(f"Current position: {pos}")
+    # print(f"Can place bomb: {np.array(game_state['self'][2], dtype=np.int32)}")
+    # print(f"Is bomb suicide: {is_bomb_suicide((self_x, self_y), field)}")
+    # print(f"Safe death features: {get_safe_death_features((self_x, self_y), field, bombs)}")
+    # print(f"Path to next coin: {action_to_next_coin_features}")
+    # print(f"Path to next crate: {action_to_next_crate_features}")
+    # print(f"Next to crate: {is_next_to_crate}")
 
-    best_dist = min(np.sum(np.abs(np.subtract(coins, pos)), axis=1))
-    near_coins = [coin for coin in coins if np.abs(coin[0] - pos[0]) + np.abs(coin[1] - pos[1]) <= best_dist + offset]
-
-    if len(near_coins) == 0:
-        return [pos]
-
-    for coin in near_coins:
-        path = shortest_path(field, pos, coin)
-        len_path = len(path)
-        if len_path < min_path_val:
-            min_path_val = len_path
-            min_path = path
-
-    return min_path
-
-
-class Node:
-    """
-    This class is needed to perform an A* search
-    """
-
-    def __init__(self, parent=None, position=None):
-        self.parent = parent
-        self.position = position
-        self.g = 0
-        self.h = 0
-        self.f = 0
-
-    def __eq__(self, other):
-        return self.position == other.position
-
-    def __lt__(self, other):
-        return self.g < other.g
-
-
-def shortest_path(free_tiles, start, target):
-    """
-    This is an A* search algorithm with heap queues to find the shortest path from start to target node
-    :param free_tiles: free tiles is a 2D numpy array that contains TRUE if a tile is free or FALSE if not
-    :param start: a (x,y) tuple with the position of the agent
-    :param target: a (x,y) tuple with the position of the target
-    :return: a list that contains the shortest path from start to target
-    """
-
-    start_node = Node(None, start)
-    target_node = Node(None, target)
-    start_node.g = start_node.h = start_node.f = 0
-    target_node.g = target_node.h = target_node.f = 0
-
-    open_nodes = []
-    closed_nodes = []
-
-    heapq.heappush(open_nodes, (start_node.f, start_node))
-
-    while len(open_nodes) > 0:
-        current_node = heapq.heappop(open_nodes)[1]
-        closed_nodes.append(current_node)
-
-        if current_node == target_node:
-            path = []
-            current = current_node
-            while current is not None:
-                path.append(current.position)
-                current = current.parent
-            return path[::-1]
-
-        # get the current node and all its neighbors
-        neighbors = []
-        i, j = current_node.position
-        neighbors_pos = [(i, j) for (i, j) in [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)] if free_tiles[i, j]]
-
-        for position in neighbors_pos:
-            node_position = (position[0], position[1])
-            new_node = Node(current_node, node_position)
-            neighbors.append(new_node)
-
-        for neighbor in neighbors:
-            if neighbor in closed_nodes:
-                continue
-
-            neighbor.g = current_node.g + 1
-            neighbor.h = ((neighbor.position[0] - target_node.position[0]) ** 2) + (
-                    (neighbor.position[1] - target_node.position[1]) ** 2)
-            neighbor.f = neighbor.g + neighbor.h
-
-            if not any(node[1] == neighbor for node in open_nodes):
-                heapq.heappush(open_nodes, (neighbor.f, neighbor))
-                continue
-
-            for open_node in open_nodes:
-                if neighbor == open_node[1]:
-                    open_node[1].f = min(neighbor.f, open_node[1].f)
-                    break
+    return features

@@ -1,20 +1,100 @@
-# Consider linear_agent_coin_callbacks
-def get_relative_maps(game_state):
-    # Return: dict mit keys
-    # 'wall_map'
-    # 'crate_map'
-    # 'coin_map'
-    # 'bomb_0_map'
-    # ...
-    # 'bomb_4_map'
-    None
+"""
+--------------------------------------------------------------------------------
+relative map features ----------------------------------------------------------
+--------------------------------------------------------------------------------
+"""
 
-# helper functions
-# get_relative_map_from_array(arr, pos)
-# get_relative_map_from_position_lists(l, pos)
+
+# This function is needed to create relative maps from the agents position
+def get_relative_maps(game_state):
+    """
+    This function takes the game_state and creates relative maps. The center (15, 15) is the agent's position
+    :param game_state: a python dictionary that contains information about
+        - the agent's position
+        - the field (crates, walls, free tiles)
+        - the position of the bombs and when the explode
+        - a list of all coins
+    :return: a dictionary with all the relative maps that will be needed
+        'wall_map'
+        'crate_map'
+        'coin_map'
+        'bomb_map_0'
+        'bomb_map_1'
+        'bomb_map_2'
+        'bomb_map_3'
+        'bomb_map_4'
+    """
+
+    # get attributes from game state
+    pos = game_state['self'][3]
+    field = game_state['field']
+    coins = game_state['coins']
+    bombs = game_state['bombs']
+    self_x, self_y = pos
+
+    # define all the relative maps that will be added to dictionary
+    wall_map = np.zeros((31, 31))
+    crate_map = np.zeros((31, 31))
+    coin_map = np.zeros((31, 31))
+    bomb_map_0 = np.zeros((31, 31))
+    bomb_map_1 = np.zeros((31, 31))
+    bomb_map_2 = np.zeros((31, 31))
+    bomb_map_3 = np.zeros((31, 31))
+    bomb_map_4 = np.zeros((31, 31))
+
+    # calculate wall map, crate map and the bomb maps
+    for x in range(len(field)):
+        for y in range(len(field[x])):
+            x_rel, y_rel = x - self_x, y - self_y
+            if field[x, y] == -1:
+                wall_map[15 + y_rel, 15 + x_rel] = 1
+            if field[x, y] == 1:
+                crate_map[15 + y_rel, 15 + x_rel] = 1
+            for pos, time in bombs:
+                if time == 0:
+                    bomb_map_0[15 + y_rel, 15 + x_rel] = 1
+                if time == 1:
+                    bomb_map_1[15 + y_rel, 15 + x_rel] = 1
+                if time == 2:
+                    bomb_map_2[15 + y_rel, 15 + x_rel] = 1
+                if time == 3:
+                    bomb_map_3[15 + y_rel, 15 + x_rel] = 1
+                if time == 4:
+                    bomb_map_4[15 + y_rel, 15 + x_rel] = 1
+
+    # calculate coin map
+    for x, y in coins:
+        x_rel, y_rel = x - self_x, y - self_y
+        coin_map[15 + y_rel, 15 + x_rel] = 1
+
+    relative_maps = {
+        'wall_map': wall_map,
+        'crate_map': crate_map,
+        'coin_map': coin_map,
+        'bomb_map_0': bomb_map_0,
+        'bomb_map_1': bomb_map_1,
+        'bomb_map_2': bomb_map_2,
+        'bomb_map_3': bomb_map_3,
+        'bomb_map_4': bomb_map_4
+    }
+
+    return relative_maps
+
 
 def restrict_relative_map(relative_map, radius):
-    None
+    """
+    This function takes a relative map and reduces the size of it to the radius
+    :param relative_map: a 2D numpy array, calculated before with get_relative_map()
+    :param radius: an integer value with the look around og the agent
+    :return: a 2D numpy array of the reduced array
+    """
+
+    index_min = 15 - radius
+    index_max = 16 + radius
+    relative_map = relative_map[index_min:index_max, index_min:index_max]
+
+    return relative_map
+
 
 """
 --------------------------------------------------------------------------------
@@ -150,3 +230,90 @@ def get_nearest_object_path(free_tiles, pos, objects, offset=0):
 escape death features ----------------------------------------------------------
 --------------------------------------------------------------------------------
 """
+
+
+def get_unsafe_tiles(field, bombs):
+    unsafe_positions = []
+    for bomb_pos, _ in bombs:
+        unsafe_positions.append(bomb_pos)
+
+        for x_offset in range(1, 4):
+            pos = (bomb_pos[0] + x_offset, bomb_pos[1])
+            if pos[0] > 16 or field[pos] == -1:
+                break
+            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
+
+        for x_offset in range(-1, -4, -1):
+            pos = (bomb_pos[0] + x_offset, bomb_pos[1])
+            if pos[0] < 0 or field[pos] == -1:
+                break
+            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
+
+        for y_offset in range(1, 4):
+            pos = (bomb_pos[0], bomb_pos[1] + y_offset)
+            if pos[0] > 16 or field[pos] == -1:
+                break
+            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
+
+        for y_offset in range(-1, -4, -1):
+            pos = (bomb_pos[0], bomb_pos[1] + y_offset)
+            if pos[0] < 0 or field[pos] == -1:
+                break
+            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
+
+    return unsafe_positions
+
+
+def get_reachable_tiles(pos, num_steps, field):
+    if num_steps == 0:
+        return [pos]
+    elif num_steps == 1:
+        ret = [pos]
+        pos_x, pos_y = pos
+
+        for pos_update in [(pos_x + 1, pos_y), (pos_x - 1, pos_y), (pos_x, pos_y + 1), (pos_x, pos_y - 1)]:
+            if 0 <= pos_update[0] <= 16 and 0 <= pos_update[1] <= 16 and field[pos_update] == 0:
+                ret.append(pos_update)
+
+        return ret
+    else:
+        candidates = get_reachable_tiles(pos, num_steps - 1, field)
+        ret = []
+        for pos in candidates:
+            ret.extend(x for x in get_reachable_tiles(pos, 1, field) if x not in ret)
+        return ret
+
+
+def get_reachable_safe_tiles(pos, field, bombs, look_ahead=True):
+    if len(bombs) == 0:
+        raise ValueError("No bombs placed.")
+
+    timer = bombs[0][1] if look_ahead else bombs[0][1] + 1
+    reachable_tiles = set(get_reachable_tiles(pos, timer, field))
+    unsafe_tiles = set(get_unsafe_tiles(field, bombs))
+
+    return [pos for pos in reachable_tiles if pos not in unsafe_tiles]
+
+
+def is_safe_death(pos, field, bombs, look_ahead=True):
+    if len(bombs) == 0:
+        return False
+
+    return len(get_reachable_safe_tiles(pos, field, bombs, look_ahead)) == 0
+
+
+def get_safe_death_features(pos, field, bombs):
+    if len(bombs) == 0:
+        return np.array([0, 0, 0, 0, 0])
+
+    ret = np.array([], dtype=np.int32)
+    for pos_update in [(pos[0], pos[1] - 1), (pos[0], pos[1] + 1), (pos[0] + 1, pos[1]), (pos[0] - 1, pos[1]), pos]:
+        if field[pos_update] == 0:
+            ret = np.append(ret, 1 if is_safe_death(pos_update, field, bombs) else 0)
+        else:
+            ret = np.append(ret, 1 if is_safe_death(pos, field, bombs) else 0)
+    return ret
+
+
+def is_bomb_suicide(pos, field):
+    return is_safe_death(pos, field, [(pos, 3)], look_ahead=False)
