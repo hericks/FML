@@ -1,3 +1,21 @@
+# Consider linear_agent_coin_callbacks
+def get_relative_maps(game_state):
+    # Return: dict mit keys
+    # 'wall_map'
+    # 'crate_map'
+    # 'coin_map'
+    # 'bomb_0_map'
+    # ...
+    # 'bomb_4_map'
+    None
+
+# helper functions
+# get_relative_map_from_array(arr, pos)
+# get_relative_map_from_position_lists(l, pos)
+
+def restrict_relative_map(relative_map, radius):
+    None
+
 """
 --------------------------------------------------------------------------------
 shortest path features ---------------------------------------------------------
