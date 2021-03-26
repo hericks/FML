@@ -133,7 +133,7 @@ def will_bomb_destroy_crates(field, bomb_pos):
     for x_offset in range(-1, -4, -1):
         new_pos = (bomb_pos[0] + x_offset, bomb_pos[1])
         if not is_on_field(new_pos) or field[new_pos] == -1:
-                break
+            break
         elif field[new_pos] == 1:
             return True
 
@@ -147,7 +147,7 @@ def will_bomb_destroy_crates(field, bomb_pos):
     for y_offset in range(-1, -4, -1):
         new_pos = (bomb_pos[0], bomb_pos[1] + y_offset)
         if not is_on_field(new_pos) or field[new_pos] == -1:
-                break
+            break
         elif field[new_pos] == 1:
             return True
 
@@ -155,6 +155,7 @@ def will_bomb_destroy_crates(field, bomb_pos):
 
 
 def append_custom_events(game_state, action, events):
+    # CRATE_DESTROYING_BOMB_DROPPED
     if action == 'BOMB' and will_bomb_destroy_crates(game_state['field'], game_state['self'][3]):
         events.append(CRATE_DESTROYING_BOMB_DROPPED)
 
