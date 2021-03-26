@@ -247,7 +247,7 @@ def state_to_features(game_state: dict) -> np.array:
 
     safe_death_features = get_safe_death_features((self_x, self_y), field, bombs)
 
-    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins)
+    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, 2)
     action_to_next_coin_features = np.array([0, 0, 0, 0])
 
     if nearest_coin_path is not None and len(nearest_coin_path) > 1:

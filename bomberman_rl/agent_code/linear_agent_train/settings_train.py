@@ -40,7 +40,9 @@ TRACE_DECAY = 0.9
 CONSTANT_REWARD = -0.1
 
 EVENT_REWARDS = {
-    e.COIN_COLLECTED: 1
+    e.COIN_COLLECTED: 5,
+    e.BOMB_DROPPED: 10,
+    e.KILLED_SELF: -50
 }
 
 # FOR EXTERNAL CONTROL (DO NOT CHANGE) -----------------------------------------
