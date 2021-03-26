@@ -8,6 +8,7 @@ from typing import List
 
 from .callbacks import state_to_features, evaluate_q, ACTIONS, AGENT_NAME, normalize_state, get_num_features
 from .settings_train import *
+from .custom_event_utils import *
 
 # Further objects
 Transition = namedtuple('Transition',
@@ -118,45 +119,10 @@ def reward_from_events(self, events: List[str]) -> int:
 # events -----------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 
-def is_on_field(pos):
-    return 0 <= pos[0] <= 16 and 0 <= pos[1] <= 16
-
-def will_bomb_destroy_crates(field, bomb_pos):
-    for x_offset in range(4):
-        new_pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    for x_offset in range(-1, -4, -1):
-        new_pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    for y_offset in range(4):
-        new_pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    for y_offset in range(-1, -4, -1):
-        new_pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    return False
-
-
 def append_custom_events(game_state, action, events):
     # CRATE_DESTROYING_BOMB_DROPPED
     if action == 'BOMB' and will_bomb_destroy_crates(game_state['field'], game_state['self'][3]):
-        events.append(CRATE_DESTROYING_BOMB_DROPPED)
+            events.append(CRATE_DESTROYING_BOMB_DROPPED)
 
 
 # ------------------------------------------------------------------------------
