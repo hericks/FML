@@ -1,5 +1,89 @@
 """
 --------------------------------------------------------------------------------
+functions for state_to_features ------------------------------------------------
+--------------------------------------------------------------------------------
+"""
+
+
+# This function is needed to get all free tiles of the field
+# This is required for example for shortest path features
+def get_free_tiles(field):
+    """
+    This function takes the field and returns all tiles where the agent could walk
+    :param field: a 2D numpy array of the field
+    :return: a 2D numpy array of type bool
+    """
+
+    free_tiles = np.zeros(field.shape, dtype=bool)
+    for i in range(len(free_tiles)):
+        for j in range(len(free_tiles[i])):
+            if field[i, j] == 0:
+                free_tiles[i, j] = 1
+
+    return free_tiles
+
+
+def get_coin_features(free_tiles, pos, coins, offset):
+    """
+
+    :param free_tiles:
+    :param pos:
+    :param coins:
+    :param offset:
+    :return:
+    """
+
+    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, offset)
+    action_to_next_coin_features = np.array([0, 0, 0, 0])
+    if nearest_coin_path is not None and len(nearest_coin_path) > 1:
+        next_pos = nearest_coin_path[1]
+        # UP
+        action_to_next_coin_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
+        # DOWN
+        action_to_next_coin_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
+        # RIGHT
+        action_to_next_coin_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
+        # LEFT
+        action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
+
+    return action_to_next_coin_features
+
+
+def get_crate_features(field, free_tiles, pos, offset):
+    """
+
+    :param field:
+    :param free_tiles:
+    :param pos:
+    :param offset:
+    :return:
+    """
+
+    crates = [(x, y) for x in range(17) for y in range(17) if field[x, y] == 1]
+    nearest_crate_path = get_nearest_coin_path(free_tiles, pos, crates, offset)
+    action_to_next_crate_features = np.array([0, 0, 0, 0])
+
+    if nearest_crate_path is not None and len(nearest_crate_path) > 1:
+        next_pos = nearest_crate_path[1]
+        # UP
+        action_to_next_crate_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
+        # DOWN
+        action_to_next_crate_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
+        # RIGHT
+        action_to_next_crate_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
+        # LEFT
+        action_to_next_crate_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
+
+    self_x, self_y = pos
+    neighbors = [(self_x + 1, self_y), (self_x - 1, self_y), (self_x, self_y + 1), (self_x, self_y - 1)]
+    is_next_to_crate = np.array(any([field[neighbor] == 1 for neighbor in neighbors]), dtype=np.int32)
+    action_to_next_crate_features = np.append(action_to_next_crate_features, is_next_to_crate)
+
+    return action_to_next_crate_features
+
+
+"""
+--------------------------------------------------------------------------------
 relative map features ----------------------------------------------------------
 --------------------------------------------------------------------------------
 """

@@ -217,58 +217,7 @@ def state_to_features(game_state: dict) -> np.array:
     field = game_state['field']
     coins = game_state['coins']
     bombs = game_state['bombs']
-    self_x, self_y = pos
-
-    free_tiles = np.zeros(field.shape, dtype=bool)
-    for i in range(len(free_tiles)):
-        for j in range(len(free_tiles[i])):
-            if field[i, j] == 0:
-                free_tiles[i, j] = 1
-
-    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, 2)
-    action_to_next_coin_features = np.array([0, 0, 0, 0])
-    if nearest_coin_path is not None and len(nearest_coin_path) > 1:
-        next_pos = nearest_coin_path[1]
-        # UP
-        action_to_next_coin_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
-        # DOWN
-        action_to_next_coin_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
-        # RIGHT
-        action_to_next_coin_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
-        # LEFT
-        action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
-
-    crates = [(x, y) for x in range(17) for y in range(17) if field[x, y] == 1]
-    nearest_crate_path = get_nearest_coin_path(free_tiles, pos, crates, 2)
-    action_to_next_crate_features = np.array([0, 0, 0, 0])
-
-    if nearest_crate_path is not None and len(nearest_crate_path) > 1:
-        next_pos = nearest_crate_path[1]
-        # UP
-        action_to_next_crate_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
-        # DOWN
-        action_to_next_crate_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
-        # RIGHT
-        action_to_next_crate_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
-        # LEFT
-        action_to_next_crate_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
-
-    neighbors = [(self_x + 1, self_y), (self_x - 1, self_y), (self_x, self_y + 1), (self_x, self_y - 1)]
-    is_next_to_crate = np.array(any([field[neighbor] == 1 for neighbor in neighbors]), dtype=np.int32)
 
     features = np.array(game_state['self'][2], dtype=np.int32)
-    features = np.append(features, is_bomb_suicide((self_x, self_y), field))
-    features = np.append(features, get_safe_death_features((self_x, self_y), field, bombs))
-    features = np.append(features, action_to_next_coin_features)
-    features = np.append(features, action_to_next_crate_features)
-    features = np.append(features, is_next_to_crate)
-
-    # print(f"Current position: {pos}")
-    # print(f"Can place bomb: {np.array(game_state['self'][2], dtype=np.int32)}")
-    # print(f"Is bomb suicide: {is_bomb_suicide((self_x, self_y), field)}")
-    # print(f"Safe death features: {get_safe_death_features((self_x, self_y), field, bombs)}")
-    # print(f"Path to next coin: {action_to_next_coin_features}")
-    # print(f"Path to next crate: {action_to_next_crate_features}")
-    # print(f"Next to crate: {is_next_to_crate}")
 
     return features
