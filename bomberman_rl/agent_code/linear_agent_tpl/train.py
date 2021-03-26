@@ -236,10 +236,15 @@ def setup_history(self):
 
     history_keys = [
         'cumulative_reward',
+        'num_moved_up',
+        'num_moved_down',
+        'num_moved_right',
+        'num_moved_left',
+        'num_waited',
         'num_bombs_dropped',
+        'num_invalid_actions',
         'num_coins_collected',
         'num_crates_destroyed',
-        'num_invalid_actions',
         'round_length'
     ]
 
@@ -260,17 +265,26 @@ def update_history_from_transition(self, old_game_state, self_action, new_game_s
 
     # update event counts
     for event in events:
-        if event == e.BOMB_DROPPED:
+        if event == e.MOVED_UP:
+            self.history['num_moved_up'][-1] += 1
+        elif event == e.MOVED_DOWN:
+            self.history['num_moved_down'][-1] += 1
+        elif event == e.MOVED_RIGHT:
+            self.history['num_moved_right'][-1] += 1
+        elif event == e.MOVED_LEFT:
+            self.history['num_moved_left'][-1] += 1
+        elif event == e.WAITED:
+            self.history['num_waited'][-1] += 1
+        elif event == e.BOMB_DROPPED:
             self.history['num_bombs_dropped'][-1] += 1
+        elif event == e.INVALID_ACTION:
+            self.history['num_invalid_actions'][-1] += 1
         elif event == e.COIN_COLLECTED:
             self.history['num_coins_collected'][-1] += 1
         elif event == e.CRATE_DESTROYED:
             self.history['num_crates_destroyed'][-1] += 1
-        elif event == e.INVALID_ACTION:
-            self.history['num_invalid_actions'][-1] += 1
 
     self.history['round_length'][-1] = new_game_state['step']
-
 
 def update_history_from_terminal(self, last_game_state, last_action, events):
     # default: update like transition
@@ -278,8 +292,14 @@ def update_history_from_terminal(self, last_game_state, last_action, events):
 
 
 def log_most_recent_history_entries(self):
+    action_keys = ['num_moved_up', 'num_moved_down', 'num_moved_right', 'num_moved_left', 'num_waited',
+                   'num_bombs_dropped', 'num_invalid_actions']
     for key in self.history.keys():
-        self.logger.info(f"{key}: {np.round(self.history[key][-1], 2)}")
+        if key in action_keys:
+            round_length = self.history['round_length'][-1]
+            self.logger.info(f"{key}: {self.history[key][-1]:2.0f} ({np.round(100 * self.history[key][-1] / round_length, 2):2.0f}%)")
+        else:
+            self.logger.info(f"{key}: {np.round(self.history[key][-1], 2)}")
     print("\n")
 
 
