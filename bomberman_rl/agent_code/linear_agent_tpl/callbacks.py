@@ -11,6 +11,7 @@ import scipy.special
 
 from .settings_train import *
 from .settings_play import *
+from .feature_utils import *
 
 # Valid actions
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
@@ -200,7 +201,6 @@ def get_num_features():
 
     return state_to_features(dummy_state).shape[0]
 
-from .feature_utils import *
 
 def state_to_features(game_state: dict) -> np.array:
     """

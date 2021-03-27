@@ -46,7 +46,7 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     self_action = reverse_action_map(self_action)
 
     # initialize transition object and append to transition history
-    if not self_action is None:
+    if self_action is not None:
         transition = Transition(
             state_to_features(old_game_state),
             self_action,
@@ -122,7 +122,7 @@ def reward_from_events(self, events: List[str]) -> int:
 def append_custom_events(game_state, action, events):
     # CRATE_DESTROYING_BOMB_DROPPED
     if action == 'BOMB' and will_bomb_destroy_crates(game_state['field'], game_state['self'][3]):
-            events.append(CRATE_DESTROYING_BOMB_DROPPED)
+        events.append(CRATE_DESTROYING_BOMB_DROPPED)
 
 
 # ------------------------------------------------------------------------------
@@ -285,6 +285,7 @@ def update_history_from_transition(self, old_game_state, self_action, new_game_s
             self.history['num_crates_destroyed'][-1] += 1
 
     self.history['round_length'][-1] = new_game_state['step']
+
 
 def update_history_from_terminal(self, last_game_state, last_action, events):
     # default: update like transition

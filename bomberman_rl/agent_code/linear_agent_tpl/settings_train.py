@@ -48,6 +48,7 @@ EVENT_REWARDS = {
 
 import simulation_study_keys as k
 
+
 def valid_in_environ(key):
     return key in os.environ and os.environ[key] != 'None'
 
