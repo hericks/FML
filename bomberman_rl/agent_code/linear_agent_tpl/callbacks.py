@@ -13,7 +13,7 @@ from .settings_train import *
 from .settings_play import *
 
 # Valid actions
-ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
+ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT']
 
 # Feature settings
 NUM_LOOK_AROUND = 4
@@ -200,6 +200,7 @@ def get_num_features():
 
     return state_to_features(dummy_state).shape[0]
 
+from .feature_utils import *
 
 def state_to_features(game_state: dict) -> np.array:
     """
@@ -218,6 +219,4 @@ def state_to_features(game_state: dict) -> np.array:
     coins = game_state['coins']
     bombs = game_state['bombs']
 
-    features = np.array(game_state['self'][2], dtype=np.int32)
-
-    return features
+    return get_first_step_to_nearest_object_features(get_free_tiles(field), pos, coins, 2)
