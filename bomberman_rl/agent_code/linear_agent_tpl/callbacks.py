@@ -219,4 +219,19 @@ def state_to_features(game_state: dict) -> np.array:
     coins = game_state['coins']
     bombs = game_state['bombs']
 
-    return get_first_step_to_nearest_object_features(get_free_tiles(field), pos, coins, 2)
+    free_tiles = get_free_tiles(field)
+
+    # crate features
+    crate_path = get_nearest_object_path(free_tiles, pos, get_crates_list(field), 2)
+    crate_features = get_first_step_on_path_features(crate_path)
+    is_next_to_crate = np.array([len(crate_path) == 2], dtype=np.int32)
+
+    # coin features
+    coin_features = get_first_step_to_nearest_object_features(free_tiles, pos, coins, 2)
+
+    features = np.array([])
+    features = np.append(features, crate_features)
+    features = np.append(features, is_next_to_crate)
+    features = np.append(features, coin_features)
+
+    return features
