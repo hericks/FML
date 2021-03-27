@@ -5,11 +5,11 @@ import events as e
 EXTERNAL_CONTROL = True
 
 # --- History settings
-AGENT_NAME = "ELIGIBILITY-AGENT"
+AGENT_NAME = 'SARSA(LAMBDA)'
 
 # Hyper parameters
-LEARNING_RATE = 0.001
-DISCOUNT_FACTOR = 0.95
+LEARNING_RATE = 0.05
+DISCOUNT_FACTOR = 0.85
 
 # --- Policy settings
 TRAIN_POLICY_TYPE = 'SOFTMAX'
@@ -20,8 +20,8 @@ EPSILON_TRAIN_BREAKS = [0, 250]
 
 # Settings for TRAIN_POLICY_TYPE == 'SOFTMAX'
 # lower -> more randomness; higher -> more greedy
-INVERSE_TEMPERATURE_TRAIN_VALUES = [75]
-INVERSE_TEMPERATURE_TRAIN_BREAKS = [0]
+INVERSE_TEMPERATURE_TRAIN_VALUES = [1, 50, 100, 200]
+INVERSE_TEMPERATURE_TRAIN_BREAKS = [0, 150, 500, 1000]
 
 # --- Learning settings
 UPDATE_ALGORITHM = 'SARSA(LAMBDA)'
@@ -30,25 +30,25 @@ UPDATE_ALGORITHM = 'SARSA(LAMBDA)'
 None
 
 # Settings for UPDATE_ALGORITHM == 'N-STEP-SARSA'
-NUM_SARSA_STEPS = 2
+NUM_SARSA_STEPS = 5
 
 # Settings for UPDATE_ALGORITHM == 'SARSA(LAMBDA)'
-TRACE_DECAY = 0.9
-
+TRACE_DECAY = 0.85
 
 # --- Reward settings
-CONSTANT_REWARD = 0
+CONSTANT_REWARD = -0.1
 
-# Custom events
-CRATE_DESTROYING_BOMB_DROPPED = 'CRATE_DESTROYING_BOMB_DROPPED'
+from .custom_event_utils import CRATE_DESTROYING_BOMB_DROPPED
+from .custom_event_utils import CRATE_DESTROYING_BOMB_DROPPED_WITHOUT_DYING
+from .custom_event_utils import BOMB_DROPPED_NO_CRATE_DESTROYED
 
 EVENT_REWARDS = {
-    CRATE_DESTROYING_BOMB_DROPPED: 10,
-    e.WAITED: -0.25,
-    e.INVALID_ACTION: -0.25,
+    e.CRATE_DESTROYED: 1,
+    e.KILLED_SELF: -26,
     e.COIN_COLLECTED: 10,
-    e.CRATE_DESTROYED: 5,
-    e.KILLED_SELF: -50
+    e.INVALID_ACTION: -0.2,
+    CRATE_DESTROYING_BOMB_DROPPED_WITHOUT_DYING: 4,
+    BOMB_DROPPED_NO_CRATE_DESTROYED: -1.5
 }
 
 # FOR EXTERNAL CONTROL (DO NOT CHANGE) -----------------------------------------
@@ -63,7 +63,7 @@ def valid_in_environ(key):
 def assign_settings_from_environ():
     global AGENT_NAME
     if valid_in_environ(k.AGENT_NAME_KEY):
-        AGENT_NAME = os.environ[k.AGENT_NAME_KEY] 
+        AGENT_NAME = os.environ[k.AGENT_NAME_KEY]
     
     global LEARNING_RATE
     if valid_in_environ(k.LEARNING_RATE_KEY):

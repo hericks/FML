@@ -1,4 +1,3 @@
-import os
 import pickle
 import random
 
@@ -12,6 +11,7 @@ import scipy.special
 
 from .settings_train import *
 from .settings_play import *
+from .feature_utils import *
 
 # Valid actions
 ACTIONS = ['UP', 'RIGHT', 'DOWN', 'LEFT', 'WAIT', 'BOMB']
@@ -218,260 +218,28 @@ def state_to_features(game_state: dict) -> np.array:
     field = game_state['field']
     coins = game_state['coins']
     bombs = game_state['bombs']
-    self_x, self_y = pos
 
-    free_tiles = np.zeros(field.shape, dtype=bool)
-    for i in range(len(free_tiles)):
-        for j in range(len(free_tiles[i])):
-            if field[i, j] == 0:
-                free_tiles[i, j] = 1
+    free_tiles = get_free_tiles(field)
 
-    nearest_coin_path = get_nearest_coin_path(free_tiles, pos, coins, 2)
-    action_to_next_coin_features = np.array([0, 0, 0, 0])
-    if nearest_coin_path is not None and len(nearest_coin_path) > 1:
-        next_pos = nearest_coin_path[1]
-        # UP
-        action_to_next_coin_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
-        # DOWN
-        action_to_next_coin_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
-        # RIGHT
-        action_to_next_coin_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
-        # LEFT
-        action_to_next_coin_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
+    # crate features
+    crates = get_crates_list(field)
+    crate_features = get_first_step_to_nearest_object_features(free_tiles, pos, crates, 2)
+    is_next_to_crate = np.array([len(crates) == 2], dtype=np.int32)
 
-    crates = [(x, y) for x in range(17) for y in range(17) if field[x, y] == 1]
-    nearest_crate_path = get_nearest_coin_path(free_tiles, pos, crates, 2)
-    action_to_next_crate_features = np.array([0, 0, 0, 0])
+    # coin features
+    coin_features = get_first_step_to_nearest_object_features(free_tiles, pos, coins, 2)
 
-    if nearest_crate_path is not None and len(nearest_crate_path) > 1:
-        next_pos = nearest_crate_path[1]
-        # UP
-        action_to_next_crate_features[0] = 1 if (pos[0], pos[1] - 1) == next_pos else 0
-        # DOWN
-        action_to_next_crate_features[1] = 1 if (pos[0], pos[1] + 1) == next_pos else 0
-        # RIGHT
-        action_to_next_crate_features[2] = 1 if (pos[0] + 1, pos[1]) == next_pos else 0
-        # LEFT
-        action_to_next_crate_features[3] = 1 if (pos[0] - 1, pos[1]) == next_pos else 0
+    # bomb features
+    safe_death = get_safe_death_features(pos, field, bombs)
+    is_suicide = is_bomb_suicide(pos, field)
+    can_place_bomb = game_state['self'][2]
 
-    neighbors = [(self_x + 1, self_y), (self_x - 1, self_y), (self_x, self_y + 1), (self_x, self_y - 1)]
-    is_next_to_crate = np.array(any([field[neighbor] == 1 for neighbor in neighbors]), dtype=np.int32)
-
-    features = np.array(game_state['self'][2], dtype=np.int32)
-    features = np.append(features, is_bomb_suicide((self_x, self_y), field))
-    features = np.append(features, get_safe_death_features((self_x, self_y), field, bombs))
-    features = np.append(features, action_to_next_coin_features)
-    features = np.append(features, action_to_next_crate_features)
+    features = np.array([])
+    features = np.append(features, crate_features)
     features = np.append(features, is_next_to_crate)
-
-    # print(f"Current position: {pos}")
-    # print(f"Can place bomb: {np.array(game_state['self'][2], dtype=np.int32)}")
-    # print(f"Is bomb suicide: {is_bomb_suicide((self_x, self_y), field)}")
-    # print(f"Safe death features: {get_safe_death_features((self_x, self_y), field, bombs)}")
-    # print(f"Path to next coin: {action_to_next_coin_features}")
-    # print(f"Path to next crate: {action_to_next_crate_features}")
-    # print(f"Next to crate: {is_next_to_crate}")
+    features = np.append(features, coin_features)
+    features = np.append(features, safe_death)
+    features = np.append(features, is_suicide)
+    features = np.append(features, can_place_bomb)
 
     return features
-
-
-def get_nearest_coin_path(field, pos, coins, offset=0):
-    """
-    This function finds the path that need the fewest steps from
-    the agents current_node position to the nearest coin
-    :param offset: an integer that gives a value that will be added to the size of the environment
-    around the agent where he is looking at coins
-    :param field: a 2D numpy array of the field (empty, crates, walls)
-    :param pos: a (x,y) tuple with the agents position
-    :param coins: a 2D numpy array of the coin map
-    :return: a list refers to the the path from the agent to the nearest coin
-    """
-
-    min_path = None
-    min_path_val = np.infty
-
-    if len(coins) == 0:
-        return [pos]
-
-    best_dist = min(np.sum(np.abs(np.subtract(coins, pos)), axis=1))
-    near_coins = [coin for coin in coins if np.abs(coin[0] - pos[0]) + np.abs(coin[1] - pos[1]) <= best_dist + offset]
-
-    if len(near_coins) == 0:
-        return [pos]
-
-    for coin in near_coins:
-        path = shortest_path(field, pos, coin)
-        len_path = len(path)
-        if len_path < min_path_val:
-            min_path_val = len_path
-            min_path = path
-
-    return min_path
-
-
-class Node:
-    """
-    This class is needed to perform an A* search
-    """
-
-    def __init__(self, parent=None, position=None):
-        self.parent = parent
-        self.position = position
-        self.g = 0
-        self.h = 0
-        self.f = 0
-
-    def __eq__(self, other):
-        return self.position == other.position
-
-    def __lt__(self, other):
-        return self.g < other.g
-
-
-def shortest_path(free_tiles, start, target):
-    """
-    This is an A* search algorithm with heap queues to find the shortest path from start to target node
-    :param free_tiles: free tiles is a 2D numpy array that contains TRUE if a tile is free or FALSE if not
-    :param start: a (x,y) tuple with the position of the agent
-    :param target: a (x,y) tuple with the position of the target
-    :return: a list that contains the shortest path from start to target
-    """
-
-    start_node = Node(None, start)
-    target_node = Node(None, target)
-    start_node.g = start_node.h = start_node.f = 0
-    target_node.g = target_node.h = target_node.f = 0
-
-    open_nodes = []
-    closed_nodes = []
-
-    heapq.heappush(open_nodes, (start_node.f, start_node))
-    free_tiles[target] = True
-
-    while len(open_nodes) > 0:
-        current_node = heapq.heappop(open_nodes)[1]
-        closed_nodes.append(current_node)
-
-        if current_node == target_node:
-            path = []
-            current = current_node
-            while current is not None:
-                path.append(current.position)
-                current = current.parent
-            return path[::-1]
-
-        # get the current node and all its neighbors
-        neighbors = []
-        i, j = current_node.position
-        neighbors_pos = [(i, j) for (i, j) in [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)] if free_tiles[i, j]]
-
-        for position in neighbors_pos:
-            new_node = Node(current_node, position)
-            neighbors.append(new_node)
-
-        for neighbor in neighbors:
-            if neighbor in closed_nodes:
-                continue
-
-            neighbor.g = current_node.g + 1
-            neighbor.h = ((neighbor.position[0] - target_node.position[0]) ** 2) + (
-                    (neighbor.position[1] - target_node.position[1]) ** 2)
-            neighbor.f = neighbor.g + neighbor.h
-
-            if not any(node[1] == neighbor for node in open_nodes):
-                heapq.heappush(open_nodes, (neighbor.f, neighbor))
-                continue
-
-            for open_node in open_nodes:
-                if neighbor == open_node[1]:
-                    open_node[1].f = min(neighbor.f, open_node[1].f)
-                    break
-
-    return [start]
-
-
-def get_unsafe_tiles(field, bombs):
-    unsafe_positions = []
-    for bomb_pos, _ in bombs:
-        unsafe_positions.append(bomb_pos)
-
-        for x_offset in range(1, 4):
-            pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-            if pos[0] > 16 or field[pos] == -1:
-                break
-            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-
-        for x_offset in range(-1, -4, -1):
-            pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-            if pos[0] < 0 or field[pos] == -1:
-                break
-            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-
-        for y_offset in range(1, 4):
-            pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-            if pos[0] > 16 or field[pos] == -1:
-                break
-            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-
-        for y_offset in range(-1, -4, -1):
-            pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-            if pos[0] < 0 or field[pos] == -1:
-                break
-            unsafe_positions.extend(x for x in [pos] if x not in unsafe_positions)
-
-    return unsafe_positions
-
-
-def get_reachable_tiles(pos, num_steps, field):
-    if num_steps == 0:
-        return [pos]
-    elif num_steps == 1:
-        ret = [pos]
-        pos_x, pos_y = pos
-
-        for pos_update in [(pos_x + 1, pos_y), (pos_x - 1, pos_y), (pos_x, pos_y + 1), (pos_x, pos_y - 1)]:
-            if 0 <= pos_update[0] <= 16 and 0 <= pos_update[1] <= 16 and field[pos_update] == 0:
-                ret.append(pos_update)
-
-        return ret
-    else:
-        candidates = get_reachable_tiles(pos, num_steps - 1, field)
-        ret = []
-        for pos in candidates:
-            ret.extend(x for x in get_reachable_tiles(pos, 1, field) if x not in ret)
-        return ret
-
-
-def get_reachable_safe_tiles(pos, field, bombs, look_ahead=True):
-    if len(bombs) == 0:
-        raise ValueError("No bombs placed.")
-
-    timer = bombs[0][1] if look_ahead else bombs[0][1] + 1
-    reachable_tiles = set(get_reachable_tiles(pos, timer, field))
-    unsafe_tiles = set(get_unsafe_tiles(field, bombs))
-
-    return [pos for pos in reachable_tiles if pos not in unsafe_tiles]
-
-
-def is_safe_death(pos, field, bombs, look_ahead=True):
-    if len(bombs) == 0:
-        return False
-
-    return len(get_reachable_safe_tiles(pos, field, bombs, look_ahead)) == 0
-
-
-def get_safe_death_features(pos, field, bombs):
-    if len(bombs) == 0:
-        return np.array([0, 0, 0, 0, 0])
-
-    ret = np.array([], dtype=np.int32)
-    for pos_update in [(pos[0], pos[1] - 1), (pos[0], pos[1] + 1), (pos[0] + 1, pos[1]), (pos[0] - 1, pos[1]), pos]:
-        if field[pos_update] == 0:
-            ret = np.append(ret, 1 if is_safe_death(pos_update, field, bombs) else 0)
-        else:
-            ret = np.append(ret, 1 if is_safe_death(pos, field, bombs) else 0)
-    return ret
-
-
-def is_bomb_suicide(pos, field):
-    return is_safe_death(pos, field, [(pos, 3)], look_ahead=False)

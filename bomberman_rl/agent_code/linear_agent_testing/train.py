@@ -8,6 +8,8 @@ from typing import List
 
 from .callbacks import state_to_features, evaluate_q, ACTIONS, AGENT_NAME, normalize_state, get_num_features
 from .settings_train import *
+from .custom_event_utils import *
+from .feature_utils import  *
 
 # Further objects
 Transition = namedtuple('Transition',
@@ -33,7 +35,6 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     :param new_game_state: The state the agent is in now.
     :param events: The events that occurred when going from  `old_game_state` to `new_game_state`
     """
-
     # add custom events to event list
     append_custom_events(old_game_state, self_action, events)
 
@@ -45,9 +46,8 @@ def game_events_occurred(self, old_game_state: dict, self_action: str, new_game_
     _, _ = normalize_state(new_game_state)
     self_action = reverse_action_map(self_action)
 
-
     # initialize transition object and append to transition history
-    if not self_action is None:
+    if self_action is not None:
         transition = Transition(
             state_to_features(old_game_state),
             self_action,
@@ -115,49 +115,25 @@ def reward_from_events(self, events: List[str]) -> int:
 
     return reward_sum + CONSTANT_REWARD
 
+
 # ------------------------------------------------------------------------------
 # events -----------------------------------------------------------------------
 # ------------------------------------------------------------------------------
-
-def is_on_field(pos):
-    return 0 <= pos[0] <= 16 and 0 <= pos[1] <= 16
-
-def will_bomb_destroy_crates(field, bomb_pos):
-    for x_offset in range(4):
-        new_pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    for x_offset in range(-1, -4, -1):
-        new_pos = (bomb_pos[0] + x_offset, bomb_pos[1])
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    for y_offset in range(4):
-        new_pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    for y_offset in range(-1, -4, -1):
-        new_pos = (bomb_pos[0], bomb_pos[1] + y_offset)
-        if not is_on_field(new_pos) or field[new_pos] == -1:
-            break
-        elif field[new_pos] == 1:
-            return True
-
-    return False
-
 
 def append_custom_events(game_state, action, events):
     # CRATE_DESTROYING_BOMB_DROPPED
     if action == 'BOMB' and will_bomb_destroy_crates(game_state['field'], game_state['self'][3]):
         events.append(CRATE_DESTROYING_BOMB_DROPPED)
+
+    # CRATE_DESTROYING_BOMB_DROPPED_WITHOUT_DYING
+    if action == 'BOMB' and will_bomb_destroy_crates(game_state['field'], game_state['self'][3]) and \
+            (is_bomb_suicide(pos=game_state['self'][3], field=game_state['field'])) is False:
+        events.append(CRATE_DESTROYING_BOMB_DROPPED_WITHOUT_DYING)
+
+    # BOMB_DROPPED_NO_CRATE_DESTROYED
+    if action == 'BOMB' and not will_bomb_destroy_crates(game_state['field'], game_state['self'][3]):
+        events.append(BOMB_DROPPED_NO_CRATE_DESTROYED)
+
 
 # ------------------------------------------------------------------------------
 # learning algorithms ----------------------------------------------------------
@@ -270,12 +246,16 @@ def setup_history(self):
 
     history_keys = [
         'cumulative_reward',
+        'num_moved_up',
+        'num_moved_down',
+        'num_moved_right',
+        'num_moved_left',
+        'num_waited',
         'num_bombs_dropped',
+        'num_invalid_actions',
         'num_coins_collected',
         'num_crates_destroyed',
-        'num_invalid_actions',
-        'round_length',
-        'died'
+        'round_length'
     ]
 
     self.history = dict()
@@ -295,16 +275,24 @@ def update_history_from_transition(self, old_game_state, self_action, new_game_s
 
     # update event counts
     for event in events:
-        if event == e.BOMB_DROPPED:
+        if event == e.MOVED_UP:
+            self.history['num_moved_up'][-1] += 1
+        elif event == e.MOVED_DOWN:
+            self.history['num_moved_down'][-1] += 1
+        elif event == e.MOVED_RIGHT:
+            self.history['num_moved_right'][-1] += 1
+        elif event == e.MOVED_LEFT:
+            self.history['num_moved_left'][-1] += 1
+        elif event == e.WAITED:
+            self.history['num_waited'][-1] += 1
+        elif event == e.BOMB_DROPPED:
             self.history['num_bombs_dropped'][-1] += 1
+        elif event == e.INVALID_ACTION:
+            self.history['num_invalid_actions'][-1] += 1
         elif event == e.COIN_COLLECTED:
             self.history['num_coins_collected'][-1] += 1
         elif event == e.CRATE_DESTROYED:
             self.history['num_crates_destroyed'][-1] += 1
-        elif event == e.INVALID_ACTION:
-            self.history['num_invalid_actions'][-1] += 1
-        elif event == e.GOT_KILLED:
-            self.history['died'][-1] = 1
 
     self.history['round_length'][-1] = new_game_state['step']
 
@@ -315,8 +303,14 @@ def update_history_from_terminal(self, last_game_state, last_action, events):
 
 
 def log_most_recent_history_entries(self):
+    action_keys = ['num_moved_up', 'num_moved_down', 'num_moved_right', 'num_moved_left', 'num_waited',
+                   'num_bombs_dropped', 'num_invalid_actions']
     for key in self.history.keys():
-        self.logger.info(f"{key}: {np.round(self.history[key][-1], 2)}")
+        if key in action_keys:
+            round_length = self.history['round_length'][-1]
+            self.logger.info(f"{key}: {self.history[key][-1]:2.0f} ({np.round(100 * self.history[key][-1] / round_length, 2):2.0f}%)")
+        else:
+            self.logger.info(f"{key}: {np.round(self.history[key][-1], 2)}")
     print("\n")
 
 
