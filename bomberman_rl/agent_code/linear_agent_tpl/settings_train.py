@@ -8,7 +8,7 @@ EXTERNAL_CONTROL = True
 AGENT_NAME = "N-STEP-SARSA-N=1"
 
 # Hyper parameters
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.004
 DISCOUNT_FACTOR = 0.75
 
 # --- Policy settings
