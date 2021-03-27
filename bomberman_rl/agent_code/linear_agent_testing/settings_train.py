@@ -8,7 +8,7 @@ EXTERNAL_CONTROL = True
 AGENT_NAME = 'SARSA(LAMBDA)'
 
 # Hyper parameters
-LEARNING_RATE = 0.05
+LEARNING_RATE = 0.01
 DISCOUNT_FACTOR = 0.85
 
 # --- Policy settings
@@ -43,7 +43,7 @@ from .custom_event_utils import CRATE_DESTROYING_BOMB_DROPPED_WITHOUT_DYING
 from .custom_event_utils import BOMB_DROPPED_NO_CRATE_DESTROYED
 
 EVENT_REWARDS = {
-    e.CRATE_DESTROYED: 1,
+    e.CRATE_DESTROYED: 2,
     e.KILLED_SELF: -26,
     e.COIN_COLLECTED: 10,
     e.INVALID_ACTION: -0.2,
