@@ -1,5 +1,11 @@
-\chapter{Feature Design}
-\section[Simple features]{Simple features \hfill \small \normalfont\textit{by Mika Rother}}
+\chapter{Training process}
+
+\section[Initial normalization]{Initial normalization \hfill \small \normalfont\textit{by Matthias Hericks}}
+
+
+
+\section[Feature design]{Feature design \hfill \small \normalfont\textit{by Mika Rother}}
+\subsection{Simple features}
 First of all, a linear model requires good feature design. Since many features cannot be represented by such a model, the return values of a feature had to be either 1 or 0. Accordingly, it is not possible to create a \textit{numpy array} that indicates for all bombs on the field how long a bomb needs to explode. In such a case, one would logically need an array for each time step of a bomb in a linear model that indicates whether a bomb will explode after as many time steps.
 \\
 
@@ -8,13 +14,13 @@ Accordingly, the first step was to design simple features that could be used to 
 
 So the work started with designing features that would teach the agent on a field without crates and only with coins to collect these coins as efficiently as possible.
 
-\subsection{Coins per quarter}
+\subsection*{Coins per quarter}
 The first feature that was developed was very simple: coins per quarter. The idea of this feature was based on giving the agent four features, where each of the features was for one of the possible moves, (where \texttt{'WAIT'} and \texttt{'BOMB'} were taken out as possible actions for this part, because it wouldn't make sense to place bombs or wait on a board without crates). The playing field was accordingly divided into top left, top right, bottom left and bottom right. Then the sum of the coins in each of these quarters was added up and given to the agent, so that he was always informed in which part of the field the most coins could be collected. 
 \\
 
 Training with these features alone led to some problems, of course. On the one hand, it could happen that a change of position led to a situation where suddenly the most coins were in a different quarter than in the step before. This often resulted in a back and forth movement, which is of course very inefficient. On the other hand, the agent often passed by nearby coins on the way to the quarter with the most coins. To fix this problem, we gave the agent more features.
 
-\subsection{Relative environment of the agent}
+\subsection*{Relative environment of the agent}
 Since the agent had not been aware of its immediate surroundings so far, \textit{relative maps} were created to tell it which objects are in its immediate neighbourhood. Since only \textit{walls} and \textit{coins} were on the field at this point, maps were first created for these two objects. These then had the following format:
 \vspace{0.1cm}
 \lstinputlisting[caption=]{listings/rel_wall_coin_map.py}
@@ -24,10 +30,10 @@ So both were maps of size $31\times 31$. The idea of these maps was that the age
 
 It is easy to calculate that $31\times 31$ entries for two maps lead to an extremely large number of features, since each field has either the value 0 or 1, depending on whether the object to be examined is located on this field or not. Therefore, and because primarily the immediate environment of the agent is interesting, another variable was introduced, the \texttt{NUM\_LOOK\_AROUND}. If, for example, the value 3 was chosen for this variable, the agent only got informations about his environment with radius 3, i.e. three fields in each direction from the agent and thus a $7\times 7$ array for the relative maps. With the help of these features, considerable progress could already be made, even if the road to perfection was still a long one.
 
-\section[Escape death features]{Escape death features \hfill \small \normalfont\textit{by Mika Rother}}
+\subsection{Escape death features}
 So, since the agent was able to collect coins in an acceptable time, the next step on the list was to move on to crates. Now the agent first had to learn to plant bombs to destroy crates without blowing himself up, and then collect the coins that appeared in the explosion. This task proved to be much more difficult, as the agent still had to earn as many coins as possible without blowing himself up. 
 
-\subsection{Get all safe tiles}
+\subsection*{Get all safe tiles}
 The first step was to find all the fields that could turn out to be unsafe. For this the function \texttt{get\_unsafe\_tiles()} was written, with the help of which one could check which fields in the periphery of a bomb were dangerous, i.e. on which fields the agent would not be allowed to stay without diying if the bomb exploded. This function was then passed the \texttt{field} and the \texttt{bombs} on each turn, which could be imported from the current \texttt{game\_state}.
 \\
 
@@ -40,7 +46,7 @@ These two functions were now used to find all fields that can still be entered i
 With the help of this function it was now possible to teach the agent not to enter fields that led to a certain death. Because the function \texttt{get\_reachable\_safe\_tiles} returns all positions, which an agent can still enter without dying.
 
 
-\subsection{Get safe death features}
+\subsection*{Get safe death features}
 However, in order to be able to represent the whole thing as a feature in a linear model, of course only binary values (0 and 1) may be returned, so that training can be done in the correct way. Accordingly, a new function was created, which creates a numpy array with five entries (for the actions: \texttt{'UP', 'DOWN', 'LEFT', 'RIGHT'} and \texttt{'WAIT'} and depending on which action is feasible without dying, has a 0 or 1 in the respective entry.  
 \\
 
@@ -51,23 +57,23 @@ For example, if the agent can only go up to avoid dying, the new function would 
 \end{lstlisting}
 \vspace{0.1cm}
 The function that creates this output is called \texttt{get\_safe\_death\_features}. Thus, in addition to the possibility of collecting coins, a list of features was now given to help the agent understand which fields it would be better to stay away from in order to avoid death.
+\\
 
-\subsection{Suicide feature}
 Up to this point, the agent was simply trained to avoid fields that could end in his death. However, he was not explicitly told not to commit suicide. For a behavior that should be avoided in any case that the agent blows himself up by his own bombs. For example, it should be made clear to him at the beginning of the game that he must not die by planting his own bombs. This idea served mainly to ensure that the first action is not \texttt{'BOMB'}, since that usually ends in certain death. Therefore, another feature \texttt{is\_bomb\_suicide()} was developed, which returns whether a bomb planted by the agent led to his death.
 
-\subsection{Relative maps for escape death features}
+\subsection*{Relative maps for escape death features}
 To round off the whole thing, relative maps for crates were generated, which were used to pass the crates in the immediate vicinity to the agent for training. The aim here was, of course, that the agent finds the way to neighboring crates as quickly as possible and does not have to search for so long.
 \\
 
 As mentioned at the beginning of this chapter, in order to have all the time steps of all bombs and where they do damage, it would be necessary to create a relative map for each time step of a bomb. Since it would then be necessary to create four different maps, corresponding features were written, but rarely used for training, since it would then have been much more difficult to find good weights. And one of the goals of reinforcement learning is to train the agent with well-chosen rewards and not with a large selection of features.
 
-\section[Shortest paths]{Shortest paths \hfill \small \normalfont\textit{by Mika Rother}}
+\subsection{Shortest paths}
 Now the point had come where our agent was performing his tasks to some extent, but not yet very efficiently. Therefore it was necessary to give him not only his environment, but actually the way he has to go, if he wants to find the next coin, for example. Since it is often important to know not only the way to the next coin, but also to the next crate or opponent, the function that calculates this shortest path had to be valid for several objects.
 \\
 
 The first approch that was taken was a simple \textsl{breadth-first-search} algorithm that treats the game board like a maze.
 
-\subsection{BFS in a maze}
+\subsection*{BFS in a maze}
 In order to be able to represent the playing field as a labyrinth, a distinction had to be made in the first step between accessible fields and walls. Logically, fields with a wall or a crate were displayed as walls, the rest were displyed as free fields. This was then stored in an array (\texttt{free\_tiles}) that has the same shape as the game board. 
 \\
 
@@ -76,20 +82,27 @@ Based on this array, it was then checked if the agent has the possibility to rea
 
 Although the shortest path could be calculated using this function, there was a major problem: the maze was recalculated for each step, which had a runtime complexity of $\mathcal{O}(0.02\si{.s})$. That doesn't sound like much, but if one wants to train several workouts with at least 100 laps, then that was definitely too much.
 
-\subsection{A* search}
+\subsection*{A* search}
 An algorithm for finding the shortest path is the A* search algorithm. This is a generalization and extension of Dijkstra's algorithm, although Dijkstra's algorithm can also be reduced to the A* search algorithm. Now a new class has to be introduced to perform A* search:
 \vspace{0.1cm}
 \lstinputlisting[caption=]{listings/class_nodes.py}
 \vspace{0.1cm}
 A node is thus initialized with a parent, a position and values $f,g$ and $h$. The A* search algorithm always examines the nodes first that are the most probable to lead to the goal. For this, the values for $f,g$ and $h$ are required. If $x$ is a node, the following relation holds:
-\begin{align*}
+\begin{align}
 f(x) = g(x) + h(x)
-\end{align*}
-In this context, $f(x)$ is the estimated distance from the starting node to node $x$, $g(x)$ denotes the previous cost from the starting node, and $h(x)$ is a heuristic that estimates how far it is from the current node to node $x$. Let $u$ and $v$ be two nodes and let $v$ be the target node. Then the heuristic that was used in our A* search algorithm is given by
+\end{align}
+In this context, $f(x)$ is the estimated distance from the starting node to node $x$, $g(x)$ denotes the previous cost from the starting node, and $h(x)$ is a heuristic that estimates how far it is from the current node to node $x$.
+\\
+ 
+Let $u$ and $v$ be two nodes and let $v$ be the target node. Then the heuristic that was used in our A* search algorithm is given by
 \begin{align*}
 h(u) = 2\cdot(u[x] - v[x]) + 2\cdot(u[y]-v[y])
 \end{align*}
-where $x$ and $y$ describe the coordinates of the game board.
+where $x$ and $y$ describe the coordinates of the game board. The choice of the heuristic is only a small detail, which can be improved, but since later only the nearest coins are considered, this was not necessary here. Nevertheless, an alternative evaluation function is given here, which Xiang Liu et al. tested in [*] for different mazes:
+\begin{align*}
+f(x) = g(x)+h(x)+h(y)
+\end{align*}
+where $y$ is the parent node of $x$. The is equal to the definition of the evaluation funtion defined in Eq. (2.1).
 \\
 
 The A* search algorithm then creates two lists with the open nodes and the closed nodes. Then, starting from the starting node, the neighbors are traversed and whenever a node is found that has not yet been added to the closed nodes, a check is made to see if it is already among the open nodes. If not, it will be added and its $g$ value will be increased by one compared to the node from which it was reached. If the node is already in the list of open nodes, it is checked if the new $g$ value is smaller than the previous one. If it is, the entry is renewed. This also ensures that the parent node is always initialized with the predecessor node from which it is quickest to get to the current node.
@@ -97,10 +110,10 @@ The A* search algorithm then creates two lists with the open nodes and the close
 
 If a shortest path to a position is found using this algorithm, this position is returned. If not, the position of the agent is returned instead. It has been shown that this algorithm is much faster than the maze-based BFS algorithm. However, the structure of the nodes has not yet been fully exploited, so the $f$,$g$, and $h$ values have not yet been well accounted for.
 
-\subsection{A* search with priority queue}
+\subsection*{A* search with priority queue}
 To get the last bit of performance out of the algorithm, it was necessary to store the open nodes list as a priority queue, where the priority in this case is determined by the $f$ value of a node. The Python module \texttt{heapq} was then used for this, which provides basics for efficient data structures. This finally allowed a satisfactory runtime to be achieved, especially since later only the objects nearest to the agent were considered. And accordingly not all objects had to be traversed.
 
-\subsection{Find shortest path to specific objects}
+\subsection*{Find shortest path to specific objects}
 Once an efficient algorithm was available that could calculate the shortest path, the next step was to calculate only the shortest path to the objects of a class that were really close. Given the list of positions of all crates, one wanted to include only the relatively close crates in the calculation, since for example the amount of crates with a \texttt{CRATE\_DENSITY} of $0.7$ would be very large and a calculation of the shortest paths to all would cost too much performance. 
 \\
 
@@ -117,15 +130,15 @@ was calculated.
 
 The shortest path functions were then used to find the shortest paths to the next coin and to the next crate. When the shortest path function was tested with the agent collecting only coins, the results were much better than with the previous features. The idea behind using this feature for the crates as well was based on the observation that when training the agent with crates and bombs, he often did not move to other crates to destroy them. By training the agent to take the shortest path to crates, much better results could be achieved.
 
-\section[All features combined]{All features combined \hfill \small \normalfont\textit{by Mika Rother}}
+\subsection{All features combined}
 
-\subsection{Last small feature}
+\subsection*{Last small feature}
 Since the agent had been taught during the training with all the features described so far that he had to plant bombs to destroy crates, i.e. received a positive reward for it, unfortunately the problem occurred that whenever he could plant a bomb, he also placed one, even if no crates were destroyed by it. Therefore, another feature was needed that simply indicates whether the agent is standing next to a crate or not, with the idea that this would teach the agent to place bombs more often if it destroyed crates.
 
-\subsection{Play and train with all features}
+\subsection*{Play and train with all features}
 Based on all the features described so far, the agent could be trained to be capable of destroying crates and collecting the coins that appeared without dying. However, this did not always succeed and even when it did, sometimes more sometimes less well (more on this below). 
 
-\section[Outlook: genetic feature selection]{Outlook: genetic feature selection \hfill \small \normalfont\textit{by Matthias Hericks}}
+\subsection{Outlook: genetic feature selection}
 
 
 
