@@ -118,6 +118,8 @@ where $\nabla \hat q$ denotes the gradient of $\hat q$ with respect to $w$ and $
 \end{equation*}
 which nearly resembles the Sarsa update in \eqref{eq:sarsa_update}. Moreover, we modified the $n$-step Sarsa update as well as the Sarsa($\lambda$) methods accordingly. \\
 
+\subsection{Linear function approximation}
+
 More concretely, we began with a simple linear function approximation, that is we write
 \begin{equation*}
 	\hat q(s, a, w) = w(a)^T \cdot x(s) = \sum_{i=1}^d x(s)_i w(a)_i,
