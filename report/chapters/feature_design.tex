@@ -1,0 +1,10 @@
+\chapter{Feature Design}
+\section[Simple features]{Simple features \hfill \small \normalfont\textit{by Mika Rother}}
+To see how many features there are, we designed a function that creates a dummy state and returns the number of features.
+\lstinputlisting[caption=]{listings/get_num_features.py}
+This makes it easier to debug problems.
+
+\section[Advanced features]{Advanced features \hfill \small \normalfont\textit{by Mika Rother}}
+\subsection{Shortest path algorithms}
+Now we needed a shortest path algorithm, so the agent tries to find the nearest coin or crate. First we had to think about a data structure that can handle an \textit{A* search} efficiently. For this we needed a node structure, so we created the following class
+\lstinputlisting[caption=]{listings/class_node.py}
