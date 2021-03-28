@@ -99,6 +99,7 @@ Let $u$ and $v$ be two nodes and let $v$ be the target node. Then the heuristic 
 h(u) = 2\cdot(u[x] - v[x]) + 2\cdot(u[y]-v[y])
 \end{align*}
 where $x$ and $y$ describe the coordinates of the game board. The choice of the heuristic is only a small detail, which can be improved, but since later only the nearest coins are considered, this was not necessary here. Nevertheless, an alternative evaluation function is given here, which Xiang Liu et al. tested in [*] for different mazes:
+% TODO: BibTex einfügen: https://www.researchgate.net/publication/238009053_A_comparative_study_of_A-star_algorithms_for_search_and_rescue_in_perfect_maze
 \begin{align*}
 f(x) = g(x)+h(x)+h(y)
 \end{align*}
@@ -145,9 +146,36 @@ Based on all the features described so far, the agent could be trained to be cap
 The first part of this section is about the different rewards we gave to the agent for different events. This part is further divided into a rewards available through regular events, i.e. for events that have already been defined from the beginning in \texttt{event.py}, and rewards based on custom events.
 
 \subsection{Rewards based on regular events}
-Because 
+At the beginning, when the agent was only supposed to collect coins, we only needed a reward that would reward him for collecting a coin. Afterwards, when we wanted to teach the agent to plant bombs to destroy crates, the awarding of rewards became much more complicated. In order to train successfully, we had to teach the agent several things to instill the correct behavior. The following points had to be checked off:
+\begin{itemize}
+\item[•] The agent must be able to plant bombs to destroy crates
+\item[•] The agent in any case is not allowed to blow himself up
+\item[•] The agent must continue to collect the coins
+\item[•] The agent should not perform too many invalid actions
+\end{itemize}
+To accomplish all these points, a certain amount of subtlety was required to set the rewards correctly. For example, if a parameter was changed too much, an undesirable behavior often emerged (more on this below). Here is an overview of the rewards we have used up to this point:
+\begin{table}[h!]
+\centering
+\begin{tabular}{|| l | l||} 
+ \hline
+ Rewards &  Range of values\\ [0.5ex] 
+ \hline\hline
+  \texttt{e.COIN\_COLLECTED} & $[5, 15]$ \\ [0.5ex] 
+  \texttt{e.KILLED\_SELF} & $[-50 , -15]$ \\[0.5ex] 
+  \texttt{e.CRATE\_DESTROYED} & $[2, 5]$ \\[0.5ex] 
+  \texttt{e.INVALID\_ACTION} & $[-0.5,-0.1]$  \\[0.5ex] 
+  \texttt{e.BOMB\_DROPPED} & $[-1, 2]$   \\ [1ex] 
+ \hline
+\end{tabular}
+\end{table}
+Two things in particular are noticeable here: 
+\begin{itemize}
+\item[1.] The range of \texttt{e.KILLED\_SELF} is quite large relative to the other rewards. This is because we have done a lot of testing on what happens when the agent is heavily punished for a suicide, and what happens when he is not punished so much for it. The latter might motivate him to plant more bombs, which is in principle a desired behavior.
+\item[2.] We actually had training sessions where we gave the agent a negative reward for planting bombs, as well as rounds where we rewarded him for doing so. This is because we wanted to teach the agent to plant bombs only if they lead to the destruction of crates. In this case we increased the reward for \texttt{e.CRATE\_DESTROYED}.
+\end{itemize}
 
-\subsubsection*{•}
+\subsection{Rewards based on custom events}
+
 
 
 
