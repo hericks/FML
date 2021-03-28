@@ -87,7 +87,7 @@ f(x) = g(x) + h(x)
 \end{align*}
 In this context, $f(x)$ is the estimated distance from the starting node to node $x$, $g(x)$ denotes the previous cost from the starting node, and $h(x)$ is a heuristic that estimates how far it is from the current node to node $x$. Let $u$ and $v$ be two nodes and let $v$ be the target node. Then the heuristic that was used in our A* search algorithm is given by
 \begin{align*}
-h(u) = 2*(u[x] - v[x]) + 2*(u[y]-v[y])
+h(u) = 2\cdot(u[x] - v[x]) + 2\cdot(u[y]-v[y])
 \end{align*}
 where $x$ and $y$ describe the coordinates of the game board.
 \\
@@ -101,10 +101,31 @@ If a shortest path to a position is found using this algorithm, this position is
 To get the last bit of performance out of the algorithm, it was necessary to store the open nodes list as a priority queue, where the priority in this case is determined by the $f$ value of a node. The Python module \texttt{heapq} was then used for this, which provides basics for efficient data structures. This finally allowed a satisfactory runtime to be achieved, especially since later only the objects nearest to the agent were considered. And accordingly not all objects had to be traversed.
 
 \subsection{Find shortest path to specific objects}
-Als ein effizienter Algorithmus da war, der den kürzesten Pfad berechnen konnte, ging es anschließend darum nur den kürzesten Pfad zu den Objekten einer Klasse zu berechnen, die auch wirklich nah waren. Gegeben der Liste von Positionen aller crates, wollte man sich nur die relativ nahen crates 
+Once an efficient algorithm was available that could calculate the shortest path, the next step was to calculate only the shortest path to the objects of a class that were really close. Given the list of positions of all crates, one wanted to include only the relatively close crates in the calculation, since for example the amount of crates with a \texttt{CRATE\_DENSITY} of $0.7$ would be very large and a calculation of the shortest paths to all would cost too much performance. 
+\\
 
+Therefore, a function was written that is passed the list of objects, let's take coins as an example, and then finds the shortest Euclidean distance between the agent and the nearest coin using the following nesting numpy function (\texttt{best\_dist}):
+\vspace{0.1cm}
+\lstinputlisting[caption=]{listings/best_dist.py}
+\vspace{0.1cm}
+But since the coin with the shortest Euclidean distance to the agent is not necessarily the one with the shortest path, one could still extend the \texttt{best\_dist} with an \texttt{offset} so that the shortest path from the agent to all coins in its neighborhood with radius $R$:
+\begin{align*}
+R = \texttt{best\_dist} + \texttt{offset}
+\end{align*}
+was calculated.
+\\
+
+The shortest path functions were then used to find the shortest paths to the next coin and to the next crate. When the shortest path function was tested with the agent collecting only coins, the results were much better than with the previous features. The idea behind using this feature for the crates as well was based on the observation that when training the agent with crates and bombs, he often did not move to other crates to destroy them. By training the agent to take the shortest path to crates, much better results could be achieved.
 
 \section[All features combined]{All features combined \hfill \small \normalfont\textit{by Mika Rother}}
+
+\subsection{Last small feature}
+Since the agent had been taught during the training with all the features described so far that he had to plant bombs to destroy crates, i.e. received a positive reward for it, unfortunately the problem occurred that whenever he could plant a bomb, he also placed one, even if no crates were destroyed by it. Therefore, another feature was needed that simply indicates whether the agent is standing next to a crate or not, with the idea that this would teach the agent to place bombs more often if it destroyed crates.
+
+\subsection{Play and train with all features}
+Based on all the features described so far, the agent could be trained to be capable of destroying crates and collecting the coins that appeared without dying. However, this did not always succeed and even when it did, sometimes more sometimes less well (more on this below). 
+
+\section[Outlook: genetic feature selection]{Outlook: genetic feature selection \hfill \small \normalfont\textit{by Matthias Hericks}}
 
 
 
