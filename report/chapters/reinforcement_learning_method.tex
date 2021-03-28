@@ -1,0 +1,102 @@
+\chapter{Learning methods and design choices}
+\section[Learning method]{Learning methods \hfill \small \normalfont\textit{by Matthias Hericks}}
+
+\subsection{Generalized policy iteration}
+
+In their most abstract form, all of the reinforcement learning methods we deployed during this project can be described as \emph{generalized policy iteration}. The key components of generalized policy iteration are two interacting processes. The \emph{policy iteration} process, makes a value function $v$ or action-value function $q$ increasingly consistent with the policy $\pi$ currently deployed. This computation of $v_\pi$ and $q_\pi$ for an arbitrary but fixed policy $\pi$ is also called the \emph{prediction problem}. The second main part of generalized policy iteration is the \emph{policy improvement} process. This process makes the policy $\pi$ greedy with respect to the current value function $v$ or action value function $q$, respectively. Richard Sutton introduced the term generalized policy iteration to refer to the general idea of letting policy-evaluation and policy-improvement processes interact, independent of the exact details of these processes. Furthermore, Sutton describes that generalized policy iterations in many (theoretical) cases convergence to the optimal (action-) value function ($q^\ast$) $v^\ast$ and optimal policy $\pi^\ast$ is guaranteed as long as the process continues to update all states. 
+
+\begin{center}
+\includegraphics[scale=0.75]{graphics/generalized_policy_iteration.png}
+\includegraphics[scale=1]{graphics/generalized_policy_iteration_2.png}
+\end{center}
+
+This generalized policy iteration is one possible solution to the \emph{control problem} (in contrast to the prediction problem), that is the relevant problem of finding a good policy. 
+
+The policy improvement step is typically done by making the policy $\pi$ greedy with respect to the most recent version of the value function $v$ or action value function $q$. During the project, we relied on an action-value function $q$, since in this case no model of the environment's dynamics is required to construct the greedy policy 
+
+\begin{equation} \label{eq:greedy_policy_update}
+	\pi(s) := \argmax_{a \in \mathcal{A}} q(s, a).
+\end{equation}
+
+For the evaluation or prediction part of the generalized policy iteration, we relied on on-policy \emph{Temporal Difference} learning. Just like Monte Carlo methods, Temporal Difference methods are model free and allow for learning directly from raw experience without a model of the world. In contrast to Monte Carlo methods, Temporal Difference methods allow for \emph{bootstrapping}, that is, they can update estimates based in part on other learned estimates, without waiting for a final outcome. This was important for the Bomberman example, since the agent should not be forced to wait till the end of a round for an update.
+
+\subsection{Sarsa algorithm}
+
+The first Temporal Difference learning method, we used was the \emph{Sarsa algorithm}, which updates after every transition from a nonterminal state.  \\
+\begin{equation} \label{eq:sarsa_update}
+	Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \big[R_{t+1} + \gamma Q(S_{t+1}, A_{t+1}) - Q(S_t, A_t)\big],
+\end{equation}
+where
+\begin{itemize}
+	\item $S_t$ denotes the initial state of the state transition,
+	\item $A_t$ denotes the action taken in the transition,
+	\item $R_{t+1}$ denotes the reward the agent received for the transition.
+\end{itemize}
+$Q(S_t, A_t)$ denotes the value estimate of the state-action-tuple $(S_t, A_t)$ and is defined to be zero for all tuples $(S_t, A_t)$, where $S_t$ is terminal.
+\begin{itemize}
+	\item $S_{t+1}$ denotes the state of the agent after the state transition,
+	\item $A_{t+1}$ denotes the action the agent will take after the state transition. Note that the value estimation $Q(S_{t+1}, A_{t+1})$ is zero for $S_{t+1}$ terminal, independently of the action $A_{t+1}$. Thus, no action is required for the evaluation of terminal states $S_{t+1}$. 
+\end{itemize}
+Moreover, this first algorithm introduces two important hyperparameters,
+\begin{itemize}
+	\item $\alpha > 0$ denotes the \emph{learning rate} and controls the effect of a single 
+	\item $\gamma \in [0, 1]$ denotes the \emph{discount factor}, which is a measure for the weight of future rewards. 
+\end{itemize}
+
+The update rule uses every element of the quintuple of events, $(S_t, A_t, R_{t+1}$, $S_{t+1}, A_{t+1})$, that make up a transition from one state–action pair to the next. In this way, the quintuple gives rise to the name Sarsa for the algorithm. Sarsa was our initial choice for a learning algorithm since it has excellent convergence properties as proven by \ref{TODO} and is easy to implement. \\
+
+% TODO: Ref: https://link.springer.com/content/pdf/10.1023/A:1007678930559.pdf
+
+From the Sarsa prediction algorithm it is straightforward to construct an on-policy control method using the generalized policy iteration. To do so, we gradually estimate the action-value function $q_\pi$ with the behaviour policy $\pi$ and simultaneously let $\pi$ greedily adapt to $q_\pi$ as in \eqref{eq:greedy_policy_update}. One of the frequently encountered conditions to guarantee the convergence of this iteration, is that all state-action pairs are in theory visited infinitely often. Without doubt, this is not possible in the large state space of the bomberman game. Still, exploration was necessary as easily seen in the classical example of the \emph{exploration-exploitation-tradeoff}. 
+
+\subsection{Exploration-exploitation-tradeoff}
+In the beginning of the project, we used $\epsilon$-greedy policies to ensure exploration of unknown action-state combinations. For every policy action-value function $q$ and $\epsilon \in [0, 1]$ the corresponding $\epsilon$-greedy policy selects a random action with probability $\epsilon$ and the action greedily proposed by $q$ with probability $1-\epsilon$. Thus, 
+
+\begin{equation} \label{epsilon-greedy-policy}
+	\epsilon\text{-greedy}(q)(s) \sim
+\begin{cases}
+ 	U(\mathcal{A}_s) & X = 1\\
+ 	\argmax_{a} q(s, a) & X = 0
+\end{cases},
+\end{equation}
+where $U(\mathcal{A}_s)$ denotes the uniform distribution on the set of possible actions in the state $s$ and $X \sim \text{Bin}(1, p)$ denotes a binomially-distributed random variable with success probability $p$. \\
+
+In later stages of the project in which it was necessary for the agent to cautiously drop bombs to complete tasks, exploration with blind tentative $\epsilon$-greedy policies was not practicable anymore. Therefore, we switched to softmax-policies to still guarantee exploration. For every action-value function $q$ and \emph{temperature} $\rho \in (0, \infty)$, the $\rho$-softmax policy selects actions in state $s$ with varying probability according to the corresponding estimated value $q(s, a)$ of the state-action tuple $(s, a)$. To be more precise, 
+\begin{equation*}
+	\mathbb{P}(\rho\text{-softmax}(q)(s) = a) = \frac{\exp\Big(\frac{q(s, a)}{\rho}\Big)}{\sum_{a_i \in \mathcal{A}_s} \exp\Big(\frac{q(s, a_i)}{\rho}\Big)}.
+\end{equation*}
+Similar to $\epsilon$ for $\epsilon$-greedy policies, the temperature $\rho$ determines the extent of the probabilistic nature of the corresponding $\rho$-softmax-policy. For $\rho \rightarrow \infty$ the corresponding $\rho$-softmax policy converges to the uniform distribution $U(\mathcal{A}_s)$ on the set of possible actions $\mathcal{A}_s$. For $\rho \rightarrow 0$ the $\rho$-softmax policy selects the action with maximal estimated corresponding value $q(s, a)$ with arbitrarily high probability. \\
+
+% TODO: Ref section.
+A more detailed description of our decision-making process regarding the different exploration possibilities can be found in section \ref{}.
+
+\subsection{The tyranny of the single time step}
+
+The Sarsa algorithm performed really well to train some initial agents on the first task. Still, one major drawback of single time step methods are described by Sutton as the \emph{tyranny of the single time step}. The tyranny of the single time step denotes the disadvantage of one-step method, such as Sarsa, that the update of an action and the amount of bootstrapping is linked. It is reasonable to update the action value function frequently to take into account anything that has changed. Unfortunately, bootstrapping works best  over longer time periods in which a significant change in states has occurred. For one step methods the update intervals and bootstrapping time periods are equal and a compromise must be made. To defy the tyranny of the single time step and to enable fast training, we therefore switched to an $n$-step method with bootstrapping over multiple steps.
+
+\subsection{$n$-Step Sarsa}
+
+The simple idea behind $n$-step Sarsa is to modify the update rule \eqref{eq:sarsa_update} to update an earlier estimate based on how it differs from an  estimate \emph{after $n$-step}, instead of based on how it differs from an estimate after a single time step. This gives rise to the new update rule
+
+\begin{equation} \label{eq:n_step_sarsa_update}
+	Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \big[\sum_{i=1}^n \gamma^{i-1}R_{t+i} + \gamma^n Q(S_{t+n}, A_{t+n}) - Q(S_t, A_t)\big].
+\end{equation}
+
+The $n$-step Sarsa methods form a family of learning methods. Since Monte Carlo methods perform their update only after every game, they can be considered as an extreme case of $n$-step Sarsa methods with $n = T$, where $T$ denotes the number of steps per game. 
+
+\begin{center}
+\includegraphics[scale=0.5]{graphics/n_step_sarsa.png}
+\end{center}
+
+% TODO: Ref https://arxiv.org/abs/1608.05151
+
+
+
+\section[Action-value function approximation]{Action-value function approximation \hfill \small \normalfont\textit{by Matthias Hericks}}
+
+
+
+
+
+
+
