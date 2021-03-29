@@ -1,5 +1,14 @@
 \chapter{Outlook}
 
+\section[Experience]{Experience \hfill \small \normalfont\textit{by Alessandro Motta}}
+In this project we decided to rely on linear function approximation. It was difficult trying to stick to a certain approach since reinforcement learning (RL) is such a vast subject. Nevertheless we had to do it, because we knew we would not have enought time to try out everything. The tasks that our agent was given were only a part of the goal for us in this project. The other part was to really be able to have a deeper understanding of the methods we used. That is why we decided not to use RL libraries that are already implemented in Python. We never had the problem that we did not have any ideas of what we wanted to do when we noticed that our agent was not learning. It was a shame that we were not able to implement all the ideas due to the time constraint. In this section, we will further describe what we would like to implement in the future without a deadline.
+\subsubsection*{Implementing a better genetic crossover for our features}
+In our linear method we implemented genetic crossover for the features, we observed it could work on the coin collecting agent but did not manage to make it work well for the crate agent. Making it work for the crate agent would have had a huge impact on our workflow. Also because right now we do not know if our agent is not learnign ideally because we don't have the right features or because we did not combine them the right way. 
+\subsubsection*{Non linear approximation function}
+Using a linear method made us concentrate a lot on feature design, which we enjoyed, yet we would have liked to learn more about the other non linear methods and to descover the differences and the opportunities that these methods could offer us. For example implementing non binary features. Something we would have also liked to do, is change to off policy learnig with Batch Descent methods.
+\subsubsection*{Training against other agents}
+Due to the fact that we did not manage to create an ideal crate agent we decided not to train against other agents. This would have not made a lot of sense since we did not manage to make him drop bombs on a certain target with our current reward and feature system. In the future we would like to train him for this task. But we will see how he performs in the tournament, maybe he is not that bad in playing against others after all.
+
 \section{Possible improvements of the environment}
 
 First of all, we want to stress that the Bomberman environment worked really well out of the box. The setup was easy and the initial hooks and templates guaranteed an excellent start. Still, we have some ideas how the environment and overall project can be improved!
