@@ -98,7 +98,7 @@ Let $u$ and $v$ be two nodes and let $v$ be the target node. Then the heuristic 
 \begin{align*}
 h(u) = 2\cdot(u[x] - v[x]) + 2\cdot(u[y]-v[y])
 \end{align*}
-where $x$ and $y$ describe the coordinates of the game board. The choice of the heuristic is only a small detail, which can be improved, but since later only the nearest coins are considered, this was not necessary here. Nevertheless, an alternative evaluation function is given here, which Xiang Liu et al. tested in [*] for different mazes:
+where $x$ and $y$ describe the coordinates of the game board. The choice of the heuristic is only a small detail, which can be improved, but since later only the nearest coins are considered, this was not necessary here. Nevertheless, an alternative evaluation function is given here, which Xiang Liu et al. tested in [\ref{..}] for different mazes:
 % TODO: BibTex einfügen: https://www.researchgate.net/publication/238009053_A_comparative_study_of_A-star_algorithms_for_search_and_rescue_in_perfect_maze
 \begin{align*}
 f(x) = g(x)+h(x)+h(y)
@@ -153,14 +153,17 @@ At the beginning, when the agent was only supposed to collect coins, we only nee
 \item[•] The agent in any case is not allowed to blow himself up
 \item[•] The agent must continue to collect the coins
 \item[•] The agent should not perform too many invalid actions
+\item[•] The agent should try to play fast and play efficient
 \end{itemize}
 To accomplish all these points, a certain amount of subtlety was required to set the rewards correctly. For example, if a parameter was changed too much, an undesirable behavior often emerged (more on this below). Here is an overview of the rewards we have used up to this point:
+
 \begin{table}[h!]
 \centering
 \begin{tabular}{|| l | l||} 
  \hline
  Rewards &  Range of values\\ [0.5ex] 
  \hline\hline
+  \texttt{CONSTANT\_REWARD} & $[-1,-0.1]$  \\[0.5ex] 
   \texttt{e.COIN\_COLLECTED} & $[5, 15]$ \\ [0.5ex] 
   \texttt{e.KILLED\_SELF} & $[-50 , -15]$ \\[0.5ex] 
   \texttt{e.CRATE\_DESTROYED} & $[2, 5]$ \\[0.5ex] 
@@ -169,13 +172,78 @@ To accomplish all these points, a certain amount of subtlety was required to set
  \hline
 \end{tabular}
 \end{table}
+
 Two things in particular are noticeable here: 
 \begin{itemize}
 \item[1.] The range of \texttt{e.KILLED\_SELF} is quite large relative to the other rewards. This is because we have done a lot of testing on what happens when the agent is heavily punished for a suicide, and what happens when he is not punished so much for it. The latter might motivate him to plant more bombs, which is in principle a desired behavior.
 \item[2.] We actually had training sessions where we gave the agent a negative reward for planting bombs, as well as rounds where we rewarded him for doing so. This is because we wanted to teach the agent to plant bombs only if they lead to the destruction of crates. In this case we increased the reward for \texttt{e.CRATE\_DESTROYED}.
 \end{itemize}
+We also used a negative constant reward, so the agent doesn't wait the whole game.
 
 \subsection{Rewards based on custom events}
+The problem caused by the second point was the following: As soon as the agent was given a reward for $\texttt{e.BOMB\_DROPPED} < 0$, it developed the behavior of only waiting, (or, if it was also given a negative reward for waiting, only making \texttt{LEFT}-\texttt{RIGHT} or \texttt{UP}-\texttt{DOWN} movements). So it was not an option to give him a negative reward directly for bombing.
+\\
+
+However, since we wanted to continue to make him more likely to plant bombs that also destroy crates, we developed our own events:
+\vspace{0.1cm}
+\lstinputlisting[caption=]{listings/custom_events.py}
+\vspace{0.1cm}
+Now let's explain the sense of them:
+\begin{itemize}
+\item[•] \texttt{CRATE\_DESTROYING\_BOMB\_DROPPED}. As already mentioned, this is the event that should develop the behavior of destroying crates with dropping bombs. 
+\item[•] \texttt{BOMB\_DROPPED\_NO\_CRATE\_DESTROYED}. This reward, on the other hand, should have exactly the opposite effect. For this event the agent should get a negative reward, because here the planting of a bomb does not cause the destruction of crates.
+\end{itemize}
+For these two custom events we could now also give rewards without rewarding the agent just for planting bombs. However, we still gave a reward for the event \texttt{e.CRATE\_DESTROYED} because we noticed that we can't set \texttt{CRATE\_DESTROYING\_BOMB\_DROPPED} too high without making the agent lay too many bombs again, thus simplifying fine tuning.
+\\
+
+Finally, here is the final overview of the rewards we used to train the agent:
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|| l | l ||} 
+ \hline
+ Rewards &  Range of values\\ [0.5ex] 
+ \hline\hline
+  \texttt{CONSTANT\_REWARD} & $[-1,-0.1]$  \\[0.5ex] 
+  \texttt{e.COIN\_COLLECTED} & $[5, 15]$ \\ [0.5ex] 
+  \texttt{e.KILLED\_SELF} & $[-35 , -15]$ \\[0.5ex] 
+  \texttt{e.CRATE\_DESTROYED} & $[2, 4]$ \\[0.5ex] 
+  \texttt{e.INVALID\_ACTION} & $[-0.5,-0.1]$  \\[0.5ex] 
+  \texttt{CRATE\_DESTROYING\_BOMB\_DROPPED} & $[2,7]$  \\[0.5ex] 
+  \texttt{BOMB\_DROPPED\_NO\_CRATE\_DESTROYED} & $[-2,-0.5]$  \\[1ex] 
+ \hline
+\end{tabular}
+\end{table}
+
+With this set of events, training was further simplified. Unfortunately, it turned out that some behavior patterns were difficult to avoid and occurred again and again when testing the agent. For example, if the agent was standing right next to a crate and there were coins on the field at the same moment, the agent got into the habit of waiting if it had to increase the Euclidean distance to the next coin first, i.e. move away from the coin first to reach it.
+
+\subsection{Fine tuning of other parameters}
+The values that could be assigned to the various rewards were not the only changeable parameters that could be fine-tuned. We tested different values for various types of parameters from time to time in order to achieve the best possible training results. In the following, these various parameters are described and their variation is briefly explained. (The exact results for the important points can be read in Experimental results).
+
+\subsubsection*{Variying hyper parameters}
+The hyper parameters of the training were the \textit{learning rate} ($\alpha$) and the \textit{discount factor}. Based on the book of Sutton [\ref{..}] and of our simulation studies we learned that the following realtion leads to good results:
+\begin{align*}
+\alpha \times \texttt{NUM\_FEATURES} \approx \text{const.}
+\end{align*}
+So we tried to choose $\alpha$ so that this realtion is approximately kept. For the discount factor we achieved good results, when choosing 
+\begin{align*}
+\texttt{DISCOUNT\_FACTOR} \sim 0.85 \pm 0.1
+\end{align*}
+
+\subsubsection*{Variying policy type parameters}
+During the project we used two different types of policies as explained in \ref{..}. In most cases the randomness was reduced with increasing number of training iterations. This yielded good results for both $\epsilon$-greedy and the softmax policy.
+
+\subsubsection*{Variying parameters of update algorithms}
+In total, we used three different update algorithms:
+\begin{itemize}
+\item[•] Sarsa,
+\item[•] $n$-step-Sarsa and
+\item[•] Sarsa($\lambda$),
+\end{itemize}
+where Sarsa is the same as $n$-step-Sarsa with $n=1$. For $n$-step-Sarsa, we obtained good results by choosing $n$ between 3 and 6. For Sarsa($\lambda$), we could choose the parameter $\lambda$ between 0.7 and 0.95 to get good results.
+
+
+
 
 
 
