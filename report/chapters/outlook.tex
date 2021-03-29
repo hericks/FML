@@ -1,4 +1,27 @@
 \chapter{Outlook}
-modell des linearen Agenten fertig machen
-off-policy lernen, anderes Modell, noch 
-Train einfacher, eigene argumente übergeben, viel rumprobiert
+
+\section{Possible improvements of the environment}
+
+First of all, we want to stress that the Bomberman environment worked really well out of the box. The setup was easy and the initial hooks and templates guaranteed an excellent start. Still, we have some ideas how the environment and overall project can be improved!
+
+\begin{itemize}
+	\item \textbf{Python Training API}. One of the major drawbacks of the environment was its inability to train agents via a Python API. When wanting to train an agent the basic setup requires a command of the following form
+	
+		\begin{center}
+			\texttt{python main.py play --agents my\_agent --train 1 --n-rounds 100 --no-gui}	
+		\end{center}
+	
+		It is not possible to pass custom parameters to the agent. For this we found multiple solutions. One being to set custom parameters as environment variables. The agent \texttt{my\_agent} then reads the environment variables during its setup. Unfortunately, this approach does not work to pass increasingly complex parameters, e.g. Python objects, to the agent. This was necessary for the genetic feature extraction algorithm we implemented. This algorithm needed to start training sessions independently with different complex (boolean expression trees) as parameters for the agent. Our rather inelegant solution for this problem was to save the expression tree in a \texttt{pickle}-file. The agent to train subsequently read this file. Even though this workflow works, it is quite inefficient. An official API with function calls like
+	
+		\begin{center}
+			\texttt{RL.train(agent\_name, num\_rounds, args)},
+		\end{center}
+	
+		where \texttt{args} are passed to the agent in its setup function would be an optimal solution. 
+	
+	\item \textbf{Extra state transition}. We noticed that \texttt{game\_events\_occurred} is called once before the game starts with \texttt{old\_game\_state} as well as \texttt{self\_action} set to \texttt{None} and \texttt{new\_game\_state} being the initial state of the game. From further discussions with other teams, we noticed that this behaviour created some confusion. It should be mentioned in the description of the repository. \\
+	
+	\item \textbf{Missing state transitions.} Another closely related possible improvement would be to include a call \texttt{game\_events\_occurred} for the last state transition. This is currently not done, since learning algorithms don't rely on the \emph{very} last state of the environment. However, as some points we wanted to log multiple properties of the very last state, e.g. the number of coins/crates left on the board. This is currently not possible, because the last state is not even included in the call of \texttt{end\_of\_round}. 
+\end{itemize}
+
+Overall, the setup was excellent to work with and our team had a great (reinforcement) learning experience \texttt{;)}. We are eager to work with reinforcement learning in again some time in the future and are excited to see the final results of the other teams. 
