@@ -1,0 +1,8 @@
+At some point it was evident, that we spend more and more time on the construction of increasingly complex features. Since this is a machine learning project, we looked for ways to overcome this problem and came up with two possible directions:
+\begin{enumerate}
+	\item Choosing a different (nonlinear) approximation function, like deep neural networks, decision trees or regression ensembles with gradient boosting.
+	\item Finding a way to learn good features (automated feature extraction).
+\end{enumerate}
+ 
+We knew from extensive communication with other groups, which opted for option 1, that a change in the approximation function would not be straight-forward. Many more complex function approximators rely on off-policy batch gradient-descent updates and $n$-step Sarsa and Sarsa($\lambda$) learning algorithms are not applicable at scale. To explore some new grounds, we read a lot about genetic algorithms for feature selection and extraction. 
+
