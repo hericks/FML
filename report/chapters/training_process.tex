@@ -10,7 +10,7 @@ First of all, a linear model requires good feature design. Since many features c
 \\
 
 Accordingly, the first step was to design simple features that could be used to analyse the agent's behaviour and achieve initial training results. At the same time, it was also important that the features did not define a desired behaviour too precisely, so that the agent still had to learn to behave well itself. 
-\\s
+\\
 
 So the work started with designing features that would teach the agent on a field without crates and only with coins to collect these coins as efficiently as possible.
 
@@ -98,12 +98,11 @@ Let $u$ and $v$ be two nodes and let $v$ be the target node. Then the heuristic 
 \begin{align*}
 h(u) = 2\cdot(u[x] - v[x]) + 2\cdot(u[y]-v[y])
 \end{align*}
-where $x$ and $y$ describe the coordinates of the game board. The choice of the heuristic is only a small detail, which can be improved, but since later only the nearest coins are considered, this was not necessary here. Nevertheless, an alternative evaluation function is given here, which Xiang Liu et al. tested in [\ref{..}] for different mazes:
-% TODO: BibTex einfügen: https://www.researchgate.net/publication/238009053_A_comparative_study_of_A-star_algorithms_for_search_and_rescue_in_perfect_maze
+where $x$ and $y$ describe the coordinates of the game board. The choice of the heuristic is only a small detail, which can be improved, but since later only the nearest coins are considered, this was not necessary here. Nevertheless, an alternative evaluation function is given here, which Xiang Liu et al. tested in \cite{liu2011} for different mazes:
 \begin{align*}
 f(x) = g(x)+h(x)+h(y)
 \end{align*}
-where $y$ is the parent node of $x$. The is equal to the definition of the evaluation funtion defined in Eq. (2.1).
+where $y$ is the parent node of $x$. The rest is equal to the definition of the evaluation funtion defined in Eq. (2.1).
 \\
 
 The A* search algorithm then creates two lists with the open nodes and the closed nodes. Then, starting from the starting node, the neighbors are traversed and whenever a node is found that has not yet been added to the closed nodes, a check is made to see if it is already among the open nodes. If not, it will be added and its $g$ value will be increased by one compared to the node from which it was reached. If the node is already in the list of open nodes, it is checked if the new $g$ value is smaller than the previous one. If it is, the entry is renewed. This also ensures that the parent node is always initialized with the predecessor node from which it is quickest to get to the current node.
@@ -221,7 +220,7 @@ With this set of events, training was further simplified. Unfortunately, it turn
 The values that could be assigned to the various rewards were not the only changeable parameters that could be fine-tuned. We tested different values for various types of parameters from time to time in order to achieve the best possible training results. In the following, these various parameters are described and their variation is briefly explained. (The exact results for the important points can be read in Experimental results).
 
 \subsubsection*{Variying hyper parameters}
-The hyper parameters of the training were the \textit{learning rate} ($\alpha$) and the \textit{discount factor}. Based on the book of Sutton [\ref{..}] and of our simulation studies we learned that the following realtion leads to good results:
+The hyper parameters of the training were the \textit{learning rate} ($\alpha$) and the \textit{discount factor}. Based on the book of Sutton \cite{Sutton1998} and of our simulation studies we learned that the following realtion leads to good results:
 \begin{align*}
 \alpha \times \texttt{NUM\_FEATURES} \approx \text{const.}
 \end{align*}
@@ -231,7 +230,7 @@ So we tried to choose $\alpha$ so that this realtion is approximately kept. For 
 \end{align*}
 
 \subsubsection*{Variying policy type parameters}
-During the project we used two different types of policies as explained in \ref{..}. In most cases the randomness was reduced with increasing number of training iterations. This yielded good results for both $\epsilon$-greedy and the softmax policy.
+During the project we used two different types of policies as explained in \cite{Sutton1998}. In most cases the randomness was reduced with increasing number of training iterations. This yielded good results for both $\epsilon$-greedy and the softmax policy.
 
 \subsubsection*{Variying parameters of update algorithms}
 In total, we used three different update algorithms:
