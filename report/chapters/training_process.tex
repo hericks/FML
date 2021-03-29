@@ -102,7 +102,7 @@ where $x$ and $y$ describe the coordinates of the game board. The choice of the 
 \begin{align*}
 f(x) = g(x)+h(x)+h(y)
 \end{align*}
-where $y$ is the parent node of $x$. The is equal to the definition of the evaluation funtion defined in Eq. (2.1).
+where $y$ is the parent node of $x$. The rest is equal to the definition of the evaluation funtion defined in Eq. (2.1).
 \\
 
 The A* search algorithm then creates two lists with the open nodes and the closed nodes. Then, starting from the starting node, the neighbors are traversed and whenever a node is found that has not yet been added to the closed nodes, a check is made to see if it is already among the open nodes. If not, it will be added and its $g$ value will be increased by one compared to the node from which it was reached. If the node is already in the list of open nodes, it is checked if the new $g$ value is smaller than the previous one. If it is, the entry is renewed. This also ensures that the parent node is always initialized with the predecessor node from which it is quickest to get to the current node.
