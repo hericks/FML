@@ -1,5 +1,6 @@
 # --- Definitions of custom events
 CRATE_DESTROYING_BOMB_DROPPED = 'CRATE_DESTROYING_BOMB_DROPPED'
+BOMB_DROPPED_NO_CRATE_DESTROYED = 'BOMB_DROPPED_NO_CRATE_DESTROYED'
 
 
 # --- Helper functions to compute these events
