@@ -1,0 +1,88 @@
+\begin{thebibliography}{11}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[{Agostini} and {Celaya}(2009)]{agostini2009}
+A.~{Agostini} and E.~{Celaya}.
+\newblock Exploiting domain symmetries in reinforcement learning with
+  continuous state and action spaces.
+\newblock In \emph{2009 International Conference on Machine Learning and
+  Applications}, pages 331--336, 2009.
+\newblock \doi{10.1109/ICMLA.2009.41}.
+
+\bibitem[Cha and Tappert(2008)]{cha2008}
+S.-H. Cha and C.~Tappert.
+\newblock Constructing binary decision trees using genetic algorithms.
+\newblock pages 49--54, 01 2008.
+
+\bibitem[Gomez et~al.(2021)Gomez, Quesada, and Lopez]{neural_designer}
+F.~Gomez, A.~Quesada, and R.~Lopez.
+\newblock Genetic algorithms for feature selection, 2021.
+\newblock URL
+  \url{https://www.neuraldesigner.com/blog/genetic_algorithms_for_feature_selection}.
+\newblock Accessed 29-March-2021.
+
+\bibitem[Gordon(2001)]{NIPS2000_04df4d43}
+G.~J. Gordon.
+\newblock Reinforcement learning with function approximation converges to a
+  region.
+\newblock In T.~Leen, T.~Dietterich, and V.~Tresp, editors, \emph{Advances in
+  Neural Information Processing Systems}, volume~13. MIT Press, 2001.
+\newblock URL
+  \url{https://proceedings.neurips.cc/paper/2000/file/04df4d434d481c5bb723be1b6df1ee65-Paper.pdf}.
+
+\bibitem[Li et~al.(2005)Li, Zhou, Xiao, and Nelson]{li2005}
+X.~Li, C.~Zhou, W.~Xiao, and P.~Nelson.
+\newblock Prefix gene expression programming.
+\newblock 01 2005.
+
+\bibitem[Liu and Gong(2011)]{liu2011}
+X.~Liu and D.~Gong.
+\newblock A comparative study of a-star algorithms for search and rescue in
+  perfect maze.
+\newblock 04 2011.
+\newblock \doi{10.1109/ICEICE.2011.5777723}.
+
+\bibitem[Nguyen et~al.(2011)Nguyen, Hoai, O’Neill, McKay, and
+  Galván-López]{nguyen2011}
+Q.~U. Nguyen, N.~Hoai, M.~O’Neill, R.~McKay, and E.~Galván-López.
+\newblock Semantically-based crossover in genetic programming: Application to
+  real-valued symbolic regression.
+\newblock \emph{Genetic Programming and Evolvable Machines}, 12:\penalty0
+  91--119, 06 2011.
+\newblock \doi{10.1007/s10710-010-9121-2}.
+
+\bibitem[Singh et~al.(2000)Singh, Jaakkola, Littman, and
+  Szepesv{\textsurd}{\textdegree}ri]{Singh2000}
+S.~Singh, T.~Jaakkola, M.~L. Littman, and C.~Szepesv{\textsurd}{\textdegree}ri.
+\newblock Convergence results for single-step on-policy reinforcement-learning
+  algorithms.
+\newblock \emph{Machine Learning}, 38\penalty0 (3):\penalty0 287--308, Mar
+  2000.
+\newblock ISSN 1573-0565.
+\newblock \doi{10.1023/A:1007678930559}.
+\newblock URL \url{https://doi.org/10.1023/A:1007678930559}.
+
+\bibitem[Sutton and Barto(2018)]{Sutton1998}
+R.~S. Sutton and A.~G. Barto.
+\newblock \emph{Reinforcement Learning: An Introduction}.
+\newblock The MIT Press, second edition, 2018.
+\newblock URL \url{http://incompleteideas.net/book/the-book-2nd.html}.
+
+\bibitem[van Seijen(2016)]{Seijen16}
+H.~van Seijen.
+\newblock Effective multi-step temporal-difference learning for non-linear
+  function approximation.
+\newblock \emph{CoRR}, abs/1608.05151, 2016.
+\newblock URL \url{http://arxiv.org/abs/1608.05151}.
+
+\bibitem[Zinkevich and Balch(2001)]{zinkevich2001}
+M.~Zinkevich and T.~Balch.
+\newblock Symmetry in markov decision processes and its implications for single
+  agent and multiagent learning.
+\newblock pages 632--, 01 2001.
+
+\end{thebibliography}
