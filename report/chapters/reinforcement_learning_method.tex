@@ -5,13 +5,15 @@
 
 In their most abstract form, all of the reinforcement learning methods we deployed during this project can be described as \emph{generalized policy iteration}. The key components of generalized policy iteration are two interacting processes. The \emph{policy iteration} process, makes a value function $v$ or action-value function $q$ increasingly consistent with the policy $\pi$ currently deployed. This computation of $v_\pi$ and $q_\pi$ for an arbitrary but fixed policy $\pi$ is also called the \emph{prediction problem}. The second main part of generalized policy iteration is the \emph{policy improvement} process. This process makes the policy $\pi$ greedy with respect to the current value function $v$ or action value function $q$, respectively. \cite{Sutton1998} introduced the term generalized policy iteration to refer to the general idea of letting policy-evaluation and policy-improvement processes interact, independent of the exact details of these processes. Furthermore, Sutton describes that generalized policy iterations in many (theoretical) cases convergence to the optimal (action-) value function ($q^\ast$) $v^\ast$ and optimal policy $\pi^\ast$ is guaranteed as long as the process continues to update all states. 
 
-\begin{center}
+
 \begin{minipage}{\linewidth}
+\begin{center}
 \includegraphics[scale=0.75]{graphics/generalized_policy_iteration.png}
 \includegraphics[scale=1]{graphics/generalized_policy_iteration_2.png}
 \captionof{figure}{Generalized policy iteration as described in \cite{Sutton1998}.}
-\end{minipage}
 \end{center}
+\end{minipage}
+
 
 This generalized policy iteration is one possible solution to the \emph{control problem} (in contrast to the prediction problem), that is the relevant problem of finding a good policy. \\
 
@@ -21,7 +23,7 @@ The policy improvement step is typically done by making the policy $\pi$ greedy 
 	\pi(s) := \argmax_{a \in \mathcal{A}} q(s, a).
 \end{equation}
 
-For the evaluation or prediction part of the generalized policy iteration, we relied on on-policy \emph{Temporal Difference} learning. Just like Monte Carlo methods, Temporal Difference methods are model free and allow for learning directly from raw experience without a model of the world. In contrast to Monte Carlo methods, Temporal Difference methods allow for \emph{bootstrapping}, that is, they can update estimates based in part on other learned estimates, without waiting for a final outcome. This was important for the Bomberman example, since the agent should not be forced to wait till the end of a round for an update.
+For the evaluation or prediction part of the generalized policy iteration, we relied on on-policy \emph{Temporal Difference} learning. Just like Monte Carlo methods, Temporal Difference methods are model free and allow for learning directly from raw experience without a model of the world. In contrast to Monte Carlo methods, Temporal Difference methods allow for \emph{bootstrapping}, that is, they can update estimates based in part on other learned estimates, without waiting for a final outcome. This was important for the Bomberman environment, since the agent should not be forced to wait till the end of a round for an update.
 
 \subsection{Sarsa algorithm}
 
@@ -48,7 +50,7 @@ Moreover, this first algorithm introduces two important hyperparameters,
 
 The update rule uses every element of the quintuple of events, $(S_t, A_t, R_{t+1}$, $S_{t+1}, A_{t+1})$, that make up a transition from one state–action pair to the next. In this way, the quintuple gives rise to the name Sarsa for the algorithm. Sarsa was our initial choice for a learning algorithm since it has excellent convergence properties as proven in \cite{Singh2000} and is easy to implement. \\
 
-From the Sarsa prediction algorithm it is straightforward to construct an on-policy control method using the generalized policy iteration. To do so, we gradually estimate the action-value function $q_\pi$ with the behaviour policy $\pi$ and simultaneously let $\pi$ greedily adapt to $q_\pi$ as in \eqref{eq:greedy_policy_update}. One of the frequently encountered conditions to guarantee the convergence of this iteration, is that all state-action pairs are in theory visited infinitely often. Without doubt, this is not possible in the large state space of the bomberman game. Still, exploration was necessary as easily seen in the classical example of the \emph{exploration-exploitation-tradeoff}. 
+From the Sarsa prediction algorithm it is straightforward to construct an on-policy control method using the generalized policy iteration. To do so, we gradually estimate the action-value function $q_\pi$ with the behaviour policy $\pi$ and simultaneously let $\pi$ greedily adapt to $q_\pi$ as in \eqref{eq:greedy_policy_update}. One of the frequently encountered conditions to guarantee the convergence of this iteration, is that all state-action pairs are in theory visited infinitely often. Without doubt, this is not possible in the large state space of the bomberman game. Still, exploration is necessary as easily seen in the classical example of the \emph{exploration-exploitation-tradeoff}. 
 
 \subsection{Exploration-exploitation-tradeoff}
 In the beginning of the project, we used $\epsilon$-greedy policies to ensure exploration of unknown action-state combinations. For every policy action-value function $q$ and $\epsilon \in [0, 1]$ the corresponding $\epsilon$-greedy policy selects a random action with probability $\epsilon$ and the action greedily proposed by $q$ with probability $1-\epsilon$. Thus, 
@@ -69,7 +71,7 @@ In later stages of the project in which it was necessary for the agent to cautio
 Similar to $\epsilon$ for $\epsilon$-greedy policies, the temperature $\rho$ determines the extent of the probabilistic nature of the corresponding $\rho$-softmax-policy. For $\rho \rightarrow \infty$ the corresponding $\rho$-softmax policy converges to the uniform distribution $U(\mathcal{A}_s)$ on the set of possible actions $\mathcal{A}_s$. For $\rho \rightarrow 0$ the $\rho$-softmax policy selects the action with maximal estimated corresponding value $q(s, a)$ with arbitrarily high probability. \\
 
 % TODO: Ref section.
-A more detailed description of our decision-making process regarding the different exploration possibilities can be found in section \ref{}.
+A more detailed description of our decision-making process regarding the different exploration possibilities can be found in section \ref{sub:agent_behaviour}.
 
 \subsection{The tyranny of the single time step}
 
