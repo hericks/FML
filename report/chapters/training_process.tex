@@ -4,7 +4,7 @@
 
 \input{chapters/exploitation_of_symmetries.tex}
 
-\section[Feature design]{Feature design \hfill \small \normalfont\textit{by Mika Rother}}
+\section[Feature design]{Feature design \hfill \small \normalfont\textit{by Mika Rother}} \label{sec:feature_design}
 \subsection{Simple features}
 First of all, a linear model requires good feature design. Since many features cannot be represented by such a model, the return values of a feature had to be either 1 or 0. Accordingly, it is not possible to create a \textit{numpy array} that indicates for all bombs on the field how long a bomb needs to explode. In such a case, one would logically need an array for each time step of a bomb in a linear model that indicates whether a bomb will explode after as many time steps.
 \\

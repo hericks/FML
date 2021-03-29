@@ -85,20 +85,25 @@ The simple idea behind $n$-step Sarsa is to modify the update rule \eqref{eq:sar
 
 The $n$-step Sarsa methods form a family of learning methods. Since Monte Carlo methods perform their update only after every game, they can be considered as an extreme case of $n$-step Sarsa methods with $n = T$, where $T$ denotes the number of steps per game. 
 
+\begin{minipage}{\linewidth}
 \begin{center}
 \includegraphics[scale=0.5]{graphics/n_step_sarsa.png}
+\captionof{figure}{Visualisation of $n$-step Sarsa by  \cite{Sutton1998}.}
 \end{center}
+\end{minipage}
 
-% TODO: Ref https://arxiv.org/abs/1608.05151
-
-Controlling from which states bootstrapping occurs is important, because it affects the fundamental trade-off between bias and variance of updates. Special motivation for the upgrade of the Sarsa algorithm to the $n$-step Sarsa algorithm was provided by the paper \emph{Effective Multi-step Temporal-Difference Learning for Non-Linear Function Approximation} by \ref{}. We achieved the best training results with an intermediate value of $n$ $(n \approx 4)$, which illustrates how the abstraction of one step Temporal Difference and Monte Carlo methods to $n$-step learning methods can increase the performance of the two extreme methods. The results of our associated simulation study are in line with previous research by Sutton \ref{} and they can be found in section \ref{}. 
+Controlling from which states bootstrapping occurs is important, because it affects the fundamental trade-off between bias and variance of updates. Special motivation for the upgrade of the Sarsa algorithm to the $n$-step Sarsa algorithm was provided \cite{Seijen16}. We achieved the best training results with an intermediate value of $n$ $(n \approx 4)$, which illustrates how the abstraction of one step Temporal Difference and Monte Carlo methods to $n$-step learning methods can increase the performance of the two extreme methods. The results of our associated simulation study are in line with previous research by Sutton \ref{} and they can be found in section \ref{}. 
 
 \subsection{Learning with eligibility traces}
 
 The last and final update to the learning algorithm was to upgrade the $n$-step Sarsa method to a generalized Sarsa($\lambda$) algorithm. Just like $n$-step Sarsa, this new family of methods unifies Temporal Difference learning and Monte Carlo methods. Sutton describes the $n$-step approach that we have been taking so far as a forward view of a learning algorithm. For every state visited, the update algorithm looks $n$-steps forward in time to all the future rewards and punishments to determine the next update. The Sarsa($\lambda$) methods reverse this view by using a short term memory, which stores information about the recently visited states and updates them accordingly. The results are similar to an $n$-step method, but moreover eligibility traces offer an elegant algorithmic mechanism with significant computational advantages. Instead of storing the last $n$ state transition tuples $(S_t, A_t, S_{t+1}, R_{t+1})$, the Sarsa($\lambda$) algorithm stores an eligibility trace $z$ of dimension $d$. When the action-value function is not approximated by a parametric function $\hat q_{w}$, $d$ is equal to the product of the cardinality of the state space and the cardinality of the action space. This is infeasible for the Bomberman game with large state space. Still, we restrict ourselves to this theoretical case here to provide a clear explanation. In this setting we may index $z$ by a state and an action $z_{s, a}$. $z_{s, a}$ serves as a short-term memory, which measures the weight of the state-action tuple $(s, a)$ on the current state. Computationally, this is done by bumping up the component $z_{s, a}$, whenever the state-action pair $(s, a)$ participates in producing an estimated value, e.g. action $a$ was performed in state $s$. Then, the corresponding component $z_{s, a}$ fades away exponentially in time. When the agent receives a reward, all state action values $q(s, a)$ are updated, but the update is weighted by their corresponding component in $z$. Thus, larger updates will be performed for the tuples $(s, a)$, which were visited just shortly before the reward occurred. 
 
+
 \begin{center}
+\begin{minipage}{\linewidth}
 \includegraphics[scale=0.6]{graphics/sarsa_lambda.png}
+\captionof{figure}{Visual comparison of Sarsa, $n$-step Sarsa and Sarsa($\lambda$) by \cite{Sutton1998}.}
+\end{minipage}
 \end{center}
 
 The hyperparameter $\lambda \in [0, 1]$ determines how fast the components of the eligibility trace $z$ fade away in time. The fading of the components is implemented as a multiplication of $z$ with $\lambda$ in each time step. In the first extreme case $\lambda = 0$, a new reward won't effect the action-value estimation of a state-action pair, which occurred more than a single time step ago. In particular, we have Sarsa(0) = 1-step Sarsa = Sarsa. The second extreme case $\lambda = 1$, yields the well-known Monte Carlo method, again. Thus, the family of learning methods Sarsa($\lambda$) unifies single step Temporal Difference learning and Monte Carlo methods in a continuous way, in contrast to the discrete unification of the two families by $n$-step methods. Moreover, Sarsa(1) is applicable even in infinite non-episodic task, where the standard Monte Carlo method fails, since there is no point in time to perform the update. \\
@@ -126,15 +131,13 @@ More concretely, we began with a simple linear function approximation, that is w
 	\hat q(s, a, w) = w(a)^T \cdot x(s) = \sum_{i=1}^d x(s)_i w(a)_i,
 \end{equation*}
 where
-% TODO: Ref chapter.
 \begin{itemize}
-	\item $x(s)$ denotes a $d$-dimensional feature vector extracted from the game state $s$ (see Chapter \ref{}), 
+	\item $x(s)$ denotes a $d$-dimensional feature vector extracted from the game state $s$ (see section \ref{sec:feature_design}), 
 	\item $w(a)$ is a weight vector for every possible action $a$.
 \end{itemize}
 In this section, we have to ensure that \eqref{eq:general_weight_update} only updates the weights $w(A_t)$ for the specific action taken. \\
 
-% TODO: Find proof.
-The advantage of using a linear function approximator is its simple form as well as the excellent convergence properties proven in \ref{}. This linear function approximation was sufficient for many different tasks. The disadvantage is the need for \emph{good} features $x(s)$. In the end, we sticked with this linear model and tried to increase the quality of the model by crafting high-quality features by hand as well as with the help of a genetic algorithm for feature extraction. 
+The advantage of using a linear function approximator is its simple form as well as the excellent convergence properties proven in \cite{NIPS2000_04df4d43}. This linear function approximation was sufficient for many different tasks. The disadvantage is the need for \emph{good} features $x(s)$. In the end, we sticked with this linear model and tried to increase the quality of the model by crafting high-quality features by hand as well as with the help of a genetic algorithm for feature extraction. 
 
 
 

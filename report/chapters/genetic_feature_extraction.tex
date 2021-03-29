@@ -12,13 +12,17 @@ The key idea, was to rewrite one of our ordinary linear agents, such that its tr
 
 To give a concrete example, lets assume that the raw feature vector $x(s)$ contains one-hot encoding of the agents surroundings. In a linear model this is only of limited benefit for the agent, since many important situations can not be described well by such a model. If a bomb is one tile above and two tiles to the right from the agent, it is quite possible, that the linear agent will learn to avoid the action \texttt{UP}, since in some situations such a bomb might have killed it. However, in a linear model the agent will shy away from the action \texttt{UP}, even if there is a wall one block above and one block to the right of him, which would block the bomb. If he still chooses the action \texttt{UP}, it is quite possible that the wall to the top right of him adds positive value to the estimation of the \texttt{UP} action. However, this is not desirable if the tile above the agent is blocked. \\
 
-Composite features might fix this problem, by introducing features like \texttt{is tile above free} \texttt{AND} \texttt{(is no bomb in the row above OR will a wall block such a bomb)}, \linebreak where most of the operands are itself composite expressions. Therefore, the aim is to find automatically construct binary expression trees, which represent good features. \\
+Composite features might fix this problem, by introducing features like \texttt{is tile above free} \texttt{AND} \texttt{(is no bomb in the row above OR will a wall block such a bomb)}, \linebreak where most of the operands are itself composite expressions. Therefore, the aim is to find automatically construct binary expression trees, which represent good features. \pagebreak 
 
-For this complex task, we introduced a genetic algorithm following the following process for feature extraction. 
+For this complex task, we introduced a genetic algorithm following the following process for feature extraction.
 
+\begin{minipage}{\linewidth}
 \begin{center}
 \includegraphics[scale=0.5]{graphics/genetic_algorithm.png}
+\captionof{figure}{Modified feature extraction process from \cite{neural_designer}.}
 \end{center}
+\end{minipage}
+\vspace{10pt}
 
 An external script, initializes multiple lists of binary expression trees at random. We will call this set of lists the \emph{population} and one list of binary expression trees an \emph{individual}. Then for each of these individuals the fitness of the associated genetic agent is evaluated by training a linear agent with the corresponding composite features and measuring some kind of performance, e.g. average reward over the last 50 training episodes. After this is done for all the individuals, the best performing agents were selected as \emph{the offspring} and cloned to create a new population. Moreover, on some of the clones mutation and crossover operations were performed. Mutation operations mutate some of the binary trees of an individual at random. Crossover operations take two individuals and exchange whole trees or subtrees. This resulting group of individuals is called the \emph{next generation}. The process is now iterated with the next generation as starting population. Throughout this process, the average performance of the individuals in the population are tracked, which hopefully increases. \\
 
