@@ -61,8 +61,27 @@ Thanks to our simulation study function we were able to make a comparison betwee
 \item The two methods with the different settings
 \end{enumerate}
 
+\subsubsection*{$\alpha$-comparison \& $n$ comparison}
+All the graphs of the simulation study are in the file \texttt{simulation\_study.py}. The thing that helped us out the most of the simulation study was the learning-rate ($\alpha$) comparison. We had been using a learning rate that was too low. We could use a higher learning rate to get faster results.
+\begin{center}
+\includegraphics[scale=0.22]{graphics/plot07.png}
+\end{center}
+We chose this graph since the difference of how the learnig-rate can affect the training is really easy to see. On the $x$ axis we can observe the number of Episodes on the $y$ axis the number of the steps the game lasted. We used the coin collector agent (without shortest path) to make this study since we were already sure of its behavior and knew that it can converge. This means that to know how good the agent is we want to see that the episodes last less. Due to the fact that after collecting all the coins the episode was over. In the light blue we can see the smallest $\alpha$ value. It is observable that a bigger $\alpha$ leads to better results faster (see the brown or purple line for example). From this graph we could also deduct that using a $n>1$ for the $n$-step Sarsa method was better. We also made a $n$-comparison for $n$-step-Sarsa to be sure of this.
+\\
 
+We did the same thing for the Sarsa($\lambda$) method but noticed only a big difference between the different alpha values but not for the $\lambda$ values.
+\begin{center}
+\includegraphics[scale=0.22]{graphics/plot08.png}
+\end{center}
 
-
+\subsubsection*{$n$-step Sarsa vs Sarsa($\lambda$)}
+Last but not least we wanned to compare the two methods with each other. For this we took inspiration from a graph that we saw in the book [\ref{..}] and plotted a similar graph. On the $x$-axis we can see the mean of the round length for the first 50 episodes and on the $y$-axis the different alphas. Note:
+\begin{enumerate}
+\item The graph depends also on the number of features that are used. For this plot we used 166 features. 
+\item If we would have used a bigger $\alpha$ we might have seen how the lines would have started to go up (not learning as fast as our current $\alpha$'s).
+\end{enumerate}
+\begin{center}
+\includegraphics[scale=0.22]{graphics/plot09.png}
+\end{center}
 
 
