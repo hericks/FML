@@ -39,6 +39,7 @@ TRACE_DECAY = 0.9
 CONSTANT_REWARD = -0.1
 
 from .custom_event_utils import CRATE_DESTROYING_BOMB_DROPPED
+from .custom_event_utils import BOMB_DROPPED_NO_CRATE_DESTROYED
 
 EVENT_REWARDS = {
     e.COIN_COLLECTED: 1

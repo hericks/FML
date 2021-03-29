@@ -33,12 +33,33 @@ After implementing the shortes path feature we managed to fix the bug and got re
 \subsection{Setup}
 In this section the task of our agent was to destroy crates in order to collect the coins around the map. Therefore we needed to implement new features and had to change our monitoring in order to see how many bombs were dropped, how many crates were destroyed and other helpful things that we started implementing along the way. A big challenge was to keep track of all the trainings with all the different game, methods and feature settings. Since we tried to train with as much combinations as possible. To help us train as much combinations as possible we wrote a shell script (train.sh) so that with one execution of the code we could train multiple agents for certain number of episodes. Afterwards we wrote a \texttt{simulation\_study.py} to make our agent train during the night with different combinations.
 
+\subsection{Agent behavior in relation to rewards}
+We tried to fine tune our reward system but did not really come to the results we were hoping for. During all our test we had some really inconsistent results. We observed that really small changes in the reward system could make really big differences in the behavior of the agent. The most challenging thing was trying to make the number of crates that were being destroyed during the game converge. As we can see in the following graph the behavior of the bot was really polarized. We understood while training that no matter what rewards we gave him he could only learn two different behaviors.
+\begin{enumerate}
+\item Dropping a bomb everytime he could was good. We gave him a small reward for dropping bombs, a big one for collecting coins, destroying crates and a negative reward for dying. This led that directly when spawning he started dropping bombs. We can see this in the graph when he drops 80 bombs per round (we trained for a round length of 400 steps and he can drop a bomb every 5 rounds, $400 \setminus5 = 80$). Sadly sometimes the crate layout is made so that if you release a bomb at the beginning of the game you have no escape and you die in the fifth round.
+\end{enumerate}
+\begin{center}
+\includegraphics[scale=0.22]{graphics/plot05.png}
+\end{center}
+\begin{enumerate}
+\setcounter{enumi}{1}
+\item Never dropping a bomb was good. We used the same rewards as before but no rewards for dropping bombs. Everytime he dropped bombs he did not manage to escape, so he died directly. Leading to thinking that dropping them is bad.
+\end{enumerate}
+After this upsetting experience we created a custom event for giving the agent only a reward for setting a bomb at a position where he did not commit suicide. This also did not help directly since he would place the bombs at the right position but then die and get a good reward anyway.
+\begin{center}
+\includegraphics[scale=0.22]{graphics/plot06.png}
+\end{center}
 
+\section[Simulation study]{Simulation study \hfill \small \normalfont\textit{by Alessandro Motta}}
 
-
-
-
-
+\subsection{Goals of the simulation study}
+Thanks to our simulation study function we were able to make a comparison between $n$-step Sarsa and trace-decay for our linear agent. The parameters and the methods that we wanted to compare:
+\begin{enumerate}
+\item The $n$ for the $n$-step-Sarsa method
+\item The $\lambda$ for the Sarsa($\lambda$) method
+\item The learning rate ($\alpha$) 
+\item The two methods with the different settings
+\end{enumerate}
 
 
 
